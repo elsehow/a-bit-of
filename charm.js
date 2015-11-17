@@ -40,6 +40,11 @@ module.exports = function () {
     emitEventPairs = [emitEventPairs]
   var userFn = argsList.slice(-1)[0]
 
+  // we create + return an event emitter
+  // where each value in the stream is 
+  // the return value of `app`at the time it was saved
+  var emitter = new EventEmitter()
+
   // hotswap overrides `require`
   // but this will only matter for for `appPath`.
   // it will cause appPath's require() statement to hot reload!
@@ -75,15 +80,11 @@ module.exports = function () {
     // TODO - does this do anything?
     try {
       return appFn.apply(null, newAppArgs)
-    } catch (e) {
-      printError(e)
+    } catch (err) {
+      emitter.emit('error', err)
     }
   }
   
-  // we also create + return an event emitter
-  // where each value in the stream is 
-  // the return value of `app`at the time it was saved
-  var emitter = new EventEmitter()
 
   // that hotswap module overwrites 'require'
   // because we add a module.change_code to it,
