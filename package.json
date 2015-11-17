@@ -1,0 +1,29 @@
+{
+  "name": "easy-charm",
+  "version": "0.2.3",
+  "description": "live-code with event emitters",
+  "main": "charm.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elsehow/easy-charm.git"
+  },
+  "keywords": [
+    "live code",
+    "livecode",
+    "event emitters",
+    "hot reload"
+  ],
+  "author": "elsehow",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/elsehow/easy-charm/issues"
+  },
+  "homepage": "https://github.com/elsehow/easy-charm#readme",
+  "dependencies": {
+    "hotmop": "0.0.1",
+    "syntax-error": "^1.1.4"
+  },
+  "devDependencies": {
+    "kefir": "^3.1.0"
+  }
+}
