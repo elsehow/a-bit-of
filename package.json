@@ -1,6 +1,6 @@
 {
   "name": "easy-charm",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "live-code with event emitters",
   "main": "charm.js",
   "repository": {

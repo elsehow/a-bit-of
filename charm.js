@@ -5,7 +5,6 @@
  */
 
 var path = require('path')
-  , check = require('syntax-error')
   , EventEmitter = require('events').EventEmitter
 
 // api:
