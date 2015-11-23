@@ -1,11 +1,11 @@
 {
-  "name": "easy-charm",
-  "version": "0.2.6",
-  "description": "live-code with event emitters",
-  "main": "charm.js",
+  "name": "a-bit-of-fry-and-raes",
+  "version": "0.0.0",
+  "description": "live-code with event emitters - processing / arduino style!",
+  "main": "indes.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elsehow/easy-charm.git"
+    "url": "git+https://github.com/elsehow/a-bit-of-fry-and-raes.git"
   },
   "keywords": [
     "live code",
@@ -16,11 +16,12 @@
   "author": "elsehow",
   "license": "BSD-2-Clause",
   "bugs": {
-    "url": "https://github.com/elsehow/easy-charm/issues"
+    "url": "https://github.com/elsehow/a-bit-of-fry-and-raes/issues"
   },
-  "homepage": "https://github.com/elsehow/easy-charm#readme",
+  "homepage": "https://github.com/elsehow/a-bit-of-fry-and-raes#readme",
   "dependencies": {
-    "hotmop": "0.0.2"
+    "hotmop": "0.0.2",
+    "kefir": "^3.1.0"
   },
   "devDependencies": {
     "kefir": "^3.1.0"

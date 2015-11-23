@@ -1,131 +1,254 @@
-# easy charm
+# a-bit-of
 
-live-code with event emitters
+a bit of fry & raes
 
-**note** i recommend you use the higher-level package i wrote [simple-charm](http://github.com/elsehow/simple-charm), which uses Kefir (FRP) streams.
+live-coding with FRP & arduino-/procsesing-inspired scripts
 
-## installation
+**NOTE**: this is under development. not finished!!
 
-    npm install easy-charm
+[npm badge]()
 
-## developing 
+## introduction
 
-if you're developing this package, or running from the repository, 
+live coding is really great
 
-    npm install --dev
+especially with streaming, asynchronous sources of data, like sensors or websockets
 
-## usage:
+a-bit-of helps you turn events from [EventEmitters]() into [Kefir streams](), a data structure that lets you perform operations on values over time (e.g. `map`, `filter`, `throttle`, `buffer`, etc).
 
-in one file (index.js):
+don't like Kefir streams? thats ok - you can turn the event emitters into whatever you'd like. see [API - setup()](## setup()) examples/custom-types
+
+## usage
+
+index.js:
 
 ```javascript
-var charm = require('easy-charm')
-  , spawn = require('child_process').spawn
-  , Kefir = require('kefir')
+var  path = require('path')
+  , abitof = require('../..')
 
-function pathTo (filename) { 
-  return require('path').join(__dirname, filename)
-}
-
-// one-script prints 1 to process.stdout, over and over
-var process  = spawn('node', [pathTo('one-script.js')])
+// run this, and live-code script.js!!
 
 // `charm` em with app.js
-var app = pathTo('/app.js')
+var script = path.join(__dirname, '/script.js')
 // make sure to pass an absolute path
-charm(app, process.stdout, 'data', function (emitter, ev) {
-  return Kefir.fromEvents(emitter, event) 
-})
+abitof.running(script)
 ```
 
-in another file (app.js):
- 
+now, write a script.js for you to live-code:
+
 ```javascript
-module.exports = function (kefirStream) {
-  function addTwo (x) { return x+2 }
-  var threeStream = kefirStream.map(addTwo)
-  threeStream.log()
+var charm = require('abitof').charm
+
+function setup () {
+
+  // here's a simple emitter
+  // it will emit a 'new-number' event every 30 ms
+  var myEmitter = new EventEmitter()
+  var n = 0
+  setInterval(function () {
+    n+=1; myEmitter.emit('new-number', n)
+  }, 30)
+
+  return {
+    args: [{
+      emitter: myEmitter,
+      ev: 'new-number'
+    }]
+  }
+  
+}
+
+// our process fn will take that stream
+function process (stream) {
+
+  function timesTwo (x) { return x*2 }
+
+  stream.map(timesTwo).log()
+
+}
+
+module.exports = {
+  setup: setup,
+  process: process
+}
+
+```
+
+# api
+
+user scripts export 2 functions: setup() and process()
+
+setup() functions send arguments to process().
+
+process() sets up listeners that deal with the data that comes over the event emitters.
+
+## script files
+
+scripts should export 2 functions: `setup` and `process`
+
+so, at the end of every script file, a `module.exports` statement can expose these:
+
+```javascript
+
+// function setup () { 
+//  ...
+// }
+
+// function process () { 
+//  ...
+// }
+
+module.exports = {
+  setup: setup,
+  process: process
 }
 ```
 
-now you can `node index.js` and, while it's running, live-code app.js!
+## setup ()
 
-## how it works / what is going on 
+setup() functions pass data into process() functions
 
-every time you save app.js, we remove all the listeners will be removed from your emitter's event. 
+we do this by a special syntax. (if you're wondering why this syntax looks like this, see [What's Going On?](#what's going on?)
 
-then, we apply the function (that last arugment) to each emitter and event pair passed in. this function returns something - whatever that something is, we pass it into the function exposed by app.js
+here's an example of how to structure return values for `setup()` functions 
 
-finally, we [hot-swap](http://npmjs.com/package/hotmop) the old function for the newly-saved one 
+```javascript
+function setup () {
 
-see examples/ for working with multiple event emitters, returning stuff back to index.js (e.g. for logging), etc.
+  // do stuff ...
 
-## api
+  return {
+    args: [
+      {
+        emitter: myEmitter,
+        ev: 'some-event',
+      {
+    ], 
+    fn: function (em, ev) {
+      return Kefir.fromEvents(em, ev)
+    }
+  }
+}
+```
 
-single stream:
+`args` is a list of objects with keys `{emitter, event}`. `emitter` is an [EventEmitter](), and `ev` is a string.
 
-### charm(path, emitter, event, fn)
+`fn` gets applied to every event in `args`.
 
-or multiple streams:
+the result of executing `fn` on each event in `args` is what gets passed to the process() function
 
-### charm(path, [emitter, event], [emitter2, event2], ..., fn)
+notice how, in the above examples, we didn't specify `fn`, and we got a Kefir stream in process(). the `fn` listed above is the default value - if you don't specify `fn`, that's what gets executed.
 
-**PATH**
+overwriting `fn` is recommended if you'd like to work with:
 
-path refers to some file that exposes a function.
-the arguments to this function will be Kefir streams, 
+- Rx observables
+- raw event emitters
+- some other FRP library
+- etc...
 
-**FN**
+## process (args...)
 
-this function gets applied
-every time you save changes to app.js.
-whatever this function returns, will
-be returned to the function exposed by app.js,
- one for each `[emitter, event]` pair passed to charm.
+the process() function takes the results of executing your setup's `fn` on each `{emitter, event}` object in your setup's `args`
 
-see examples/multiple-streams/ for an example with multiple in-streams
+```javascript
+function setup () {
+  // ...
+  return {
+    args: [
+      {
+        emitter: emitter1, 
+        ev: 'event1'
+      },
+      {
+        emitter: emitter2, 
+        ev: 'event2'
+      },
+    ],
+    fn: function (em, ev) {
+      return Kefir.fromEvents(em, ev)
+    }
+  }
+}
 
-**RETURN VALUES**
+function process (stream1, stream2) {
+  // do stuff ...
+}
+```
+so, the length of your setup() function's `args` return value
 
-`charm` returns an event emitter - this emitter returns two kinds of events:
+dictates the number of arguments that get fed to `process`
 
-* **'return-val'**  - this event will emit every time the app file is saved. it will contain the return value of the app's function. see examples
+the function `fn` in your setup()'s return type
 
-* **'error'**  - this event will emit every time there was an error reloading/hot-swapping the function. these will often be syntax errors. you can catch these without crashing your whole app! all listeners will be unsubscribed from emitters when this happens.
+dictates the types of the arguments fed to process()
 
-example: in index.js, you can:
+## event emitters 
 
-    // setup charm on some file path `appPath`
-    var emitter = charm(appPath, socket, 'event')
-    // get new return values every time app is hotswapped
-    emitter.on('return-val', function (r) {
-      // do stuff with `app`'s return value
-    })
-    // catch reload errors
-    emitter.on('error', function (err) {
-      console.log('ERR!!!', err)
-    })
-  
+one example might be a [Socket.io]() connection. then you might have:
 
-see examples/logging/ for one use case of this
+  {
+    emitter: socket,
+    event: 'my-websocket-event'
+  }
 
-## why
+[node streams]() have EventEmitters, too:
 
-livecoding is [really great](http://toplap.org/bricolage-the-world-of-live-coding/)
+  { 
+    emitter: process.stdout,
+    event: 'data'
+  }
 
-long history in lisp and all that, still a core priority in clojure and clojurescript
+so do [serialport]()s, etc..
 
-in javascript, event emitters are at the core of most asynchronous operations. i personally deal with streaming biosensor data, which sometimes comes over a bluetooth connection (serial) and sometimes through a websocket. in both cases, i need to parse and process the data. 
 
-you can use this to mix-and-match various types of emitters - [sockets](https://github.com/maxogden/websocket-stream), [serial connections](https://www.npmjs.com/package/serialport2), [any node stream](https://github.com/substack/stream-handbook), what have you
+### returning values from process
 
-personally i use this with kefir streams - [simple-charm](http://github.com/elsehow/simple-charm) is a very light wrapper on this package
+when we're setting up a-bit-of, we do:
 
-## debugging
+  abitof.running(pathToScript)
 
-be sure to pass `charm` the absolute path of your script. see example.
+well, this function returns an event emitter:
 
-## LICENSE
+  // load the script for live-reloading
+  var emitter = abitof.running(pathToScript)
+  // handle return values from script's process() fn
+  emitter.on('return-value', function (v) {
+    console.log('process() function just changed! it returned', v)
+  })
 
-BSD-2-Clause
+one 'return-value' event will be returned every time the process() function is modified in the script
+
+# examples
+
+## simple-example
+
+go into this directory and
+
+    node simple-example.js
+
+now, edit the `process()` function in script.js.
+
+save your changes
+
+and notice how everything live-reloads neatly!
+
+try putting a syntax error in script.js, and save that.
+
+notice how it doesn't crash! 
+
+it will patiently wait for you to fix the changes.
+
+meanwhile, your event emitters are still pumping events out, undisturbed!
+
+**NOTE**: if you change `process()`, it will live-reload without running setup again. so, you will not have to re-connect to websocket servers, re-open serial ports, etc... on changes. hooray! *HOWEVER* - if you change `setup()`, everything will get reloaded!
+
+## multiple-streams
+
+here,
+
+    node multiple-streams.js
+
+and live-code script.js
+
+TODO add more
 
