@@ -23,123 +23,78 @@ module.exports = function (scriptPath) {
   var emitter = new EventEmitter()
 
   // hotswap overrides `require`
-  // but this will only matter for for `appPath`.
-  // it will cause appPath's require() statement to hot reload!
+  // but this will only matter for for `scriptPath`.
+  // it will cause scriptPath's require() statement to hot reload!
   //
   // `hotswap` here is an event emitter
   // it will emit:
   //
   //   - 'error' (err) -- an error
-  //   - 'swap'  ()    -- notification that appPath was swapped.
+  //   - 'swap'  ()    -- notification that scriptPath was swapped.
   //
   var hotswap = require('hotmop')(scriptPath) 
 
-  function charm (setupFnReturnVal) {
+  var script = require(scriptPath)
 
-    // state
-    var fn = setupFnReturnVal.fn
-      , args = setupFnReturnVal.args
+  // let's run the script's setup()
+  var rv = script.setup()
 
-    // fn to remove existing listeners from the setup fn's emitters
-    function removeAllListeners () {
-      function removeListener (emev) {
-        emev.emitter.removeAllListeners(emev.ev)
-      }
-      args.forEach(removeListener)
-      return
-    }
-
-    // fn to apply the user's transformation to all setup fn's emitters
-    function applyFunction (emev) {
-      return fn(emev.emitter, emev.ev)
-    }
-
-    // on every new require, we parse the app script for errors
-    // if we catch one, we emit 'error' instead of crashing!
-    // set up new error listeners
-    hotswap.on('error', function (err) {
-      // effectively tare down the app
-      removeAllListeners() 
-      // emit the error
-      emitter.emit('error', err)
+  // function to give us fresh args for process()
+  function newProcessArgs() {
+    return proccessArgs = rv.args.map(function (emev) {
+      return rv.fn(emev[0], emev[1])
     })
+  }
 
-    // charm returns two things:
-    // a list of `args` for process()
-    // and a function for removing all the current arguments
-    // these are the new args for process
-    return {
-      removeListenersFn: removeAllListeners,
-      processArgs: args.map(applyFunction),
-    }
+  // function to remove all old listeners
+  // we'll need this when we hot-swap,
+  // to remove the old listeners process() applied
+  function removeOldListeners () {
+    rv.args.forEach(function (emev) {
+      emev[0].removeAllListeners(emev[1])
+    })
+  }
+
+  // whenever there's any error in the app
+  function handleError (err) {
+    // emit an error
+    emitter.emit('error', err)
+    // tares down the app to prevent further error-ing
+    removeOldListeners()
+    return
   }
 
   // we run this to start the app
-  // it returns a function that can check how to hotswap the app
-  // (changes to setup restart the app entirely - changes to process() do not)
-  function bootstrap (userScript) {
+  // it returns a function that re-loads the app
+  // (changes to process() are hot-reloaded - changes to setup() are not)
+  function bootstrap (s) {
 
-    // state 
-    var oldSetupFn = null
-      , oldProcessFn = null
-      , args = null
-      , removeListenersFn = null
-
-    // fn to rerun script from scratch
-    function run (setfn, procfn) {
-      var vs = charm(setfn())
-      var r = procfn.apply(null, vs.processArgs)
+    // returns fn to run script 
+    return function () {
+      console.log("doin stuff")
+      // remove old listeners
+      removeOldListeners()
+      // execute process() on setup()'s arguments
+      // NOTE! we're running `s`, from out of scope
+      // we're referring to the `s` that's been `require`d 
+      // into the module-level scope, below
+      var r = s.process.apply(null, newProcessArgs())
+      // emit process()'s return values
       emitter.emit('return-val', r)
-      // update the state
-      oldSetupFn = setfn
-      oldProcessFn = procfn
-      // return a fn to remove the listeners that the process fn sets up
-      return vs.removeListenersFn
-    }
-
-    // do an initial run
-    removeListenersFn = run(userScript.setup, userScript.process)
-
-    // return a function to execute on every hotswap!
-    return function (newUserScript) {
-
-      // current function values
-      setupFn = newUserScript.setup
-      processFn = newUserScript.process
-
-      if (setupFn == oldSetupFn) 
-        console.log('no change at all in setup()!')
-
-      if (processFn == oldProcessFn) 
-        console.log('no change at all in process()!')
-
-
-      // remove all the old listeners
-      removeListenersFn()
-
-      // run the new script, get the new ones
-      // get the new ones
-      removeListenersFn = run(setupFn, processFn)
       return
     }
+
   }
 
-  // here's where we require the user script, `s`
-  // that hotswap module overwrites `require`
-  // it will change the pointer to the new fn in mid-air
-  // and the event emitter `hotswap` will emit 2 kinds of events: 
-  //    - 'swap'
-  //    - 'error'
-
-  var s = require(scriptPath)
-
+ 
   // we set up the hot-reload functionality here
-  
-  var changeChecker = bootstrap(s)
-
-  hotswap.on('swap', function () {
-    changeChecker(s)
-  })
+  var runFn = bootstrap(script)
+  // run once
+  runFn()
+  // re-run on reload
+  hotswap.on('swap', runFn)
+  // setup error listeners
+  hotswap.on('error', handleError) 
 
   // return an emitter that emits 'return-val' events on file swap
   return emitter

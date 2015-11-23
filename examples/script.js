@@ -9,15 +9,14 @@ function setup () {
   var n = 0
   setInterval(function () {
     n+=1
-    myEmitter.emit('new-number', n)
+    myEmitter.emit('number', n)
   }, 30)
 
   // let's turn that emitter into a Kefir stream ..
   return {
-    args: [{ 
-        emitter: myEmitter,
-        ev: 'new-number'
-    }],
+    args: [ 
+        [ myEmitter, 'number']
+    ],
     fn: function (emitter, ev)  {
       return Kefir.fromEvents(emitter, ev)
     }
@@ -27,9 +26,12 @@ function setup () {
 // our process fn will take that stream
 function process (stream) {
 
-  function timesTwo (x) { return x*2 }
+  function timesTwo (x) { return x*0 }
 
   var s = stream.map(timesTwo)
+
+  s.log()
+
 }
 
 
