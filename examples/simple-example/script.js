@@ -1,6 +1,6 @@
 var EventEmitter = require('events').EventEmitter
   , abitof       = require('../..')
-
+  , asStream = require('../kefir.js')
 
 function setup () {
 
@@ -17,7 +17,7 @@ function setup () {
   // let's turn that emitter into a Kefir stream ..
   // this will be passed as an argument to process()
   return [ 
-    abitof.kefir(myEmitter, 'new-number') 
+    asStream(myEmitter, 'new-number') 
   ]
 }
 

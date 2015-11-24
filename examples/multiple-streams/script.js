@@ -1,5 +1,6 @@
 var EventEmitter = require('events').EventEmitter
   , abitof       = require('../..')
+  , asStream = require('../kefir.js')
 
 // makes a simple emitter
 // it will emit a 'new-number' event every 30 ms
@@ -19,8 +20,8 @@ function setup () {
   // let's turn that emitter into a Kefir stream ..
   // this will be passed as an argument to process()
   return [ 
-    abitof.kefir(oneEmitter, 'new-number'),
-    abitof.kefir(twoEmitter, 'new-number'),
+    asStream(oneEmitter, 'new-number'),
+    asStream(twoEmitter, 'new-number'),
   ]
 }
 

@@ -1,7 +1,5 @@
 # a-bit-of
 
-a bit of fry & raes
-
 live-coding with FRP & arduino-/procsesing-inspired scripts
 
 ![npm badge](https://nodei.co/npm/a-bit-of.png?downloads=true)
@@ -20,29 +18,18 @@ don't like Kefir streams? thats ok - you can turn the event emitters into whatev
 
 ## usage
 
-index.js:
+
+write a script.js file you to live-code:
 
 ```javascript
-var  path = require('path')
-  , abitof = require('abitof')
 
-// run this, and live-code script.js!!
-
-// `charm` em with app.js
-var script = path.join(__dirname, '/script.js')
-// make sure to pass an absolute path
-abitof.charm(script)
-```
-
-now, write a script.js for you to live-code:
-
-```javascript
-var abitof = require('abitof')
+var kefir = require('kefir')
 
 function setup () {
 
   // here's a simple emitter
-  // it will emit a 'new-number' event every 30 ms
+  // it will count up
+  // emitting a 'new-number' event every 30 ms
   var myEmitter = new EventEmitter()
   var n = 0
   setInterval(function () {
@@ -50,7 +37,13 @@ function setup () {
   }, 30)
 
   return [
-    abitof.kefir(myEmitter, 'new-number')
+    {
+      em: myEmitter,
+      ev: 'new-number',
+      fn: function (emitter, evnt) {
+        return Kefir.fromEvents(emitter, evnt)
+      }
+    }
   ]
   
 }
@@ -70,6 +63,22 @@ module.exports = {
 }
 
 ```
+
+now, set that script up with a-bit-of:
+
+```javascript
+var  path = require('path')
+  , abitof = require('abitof')
+
+// run this, and live-code script.js!!
+
+// `charm` em with app.js
+var script = path.join(__dirname, '/script.js')
+// make sure to pass an absolute path
+abitof(script)
+```
+
+`node` that latter file to run it, and start live-coding script.js!
 
 ## event emitters?
 
@@ -114,15 +123,14 @@ see how they above example has a process() and a setup() function? setup() is ru
 this is the "charm" of a-bit-of. see below
 
 
-
 # api
 
-## abitof.charm(appPath)
+## abitof(appPath)
 
 load a user script for live-reloading:
 
 ```javascript
-abitof.charm('/home/elsehow/my-script.js')
+abitof('/home/elsehow/my-script.js')
 ```
 
 takes an absolute path to a user script file.
@@ -145,12 +153,18 @@ var abitof = require('a-bit-of')
 function setup () { 
   var port = // setup serial port..
   return [
-    abitof.kefir(port, 'data')
+    {
+      em: port
+      ev: 'data'
+      fn: function (em, ev) {
+        return em
+      }
+    }
   ]
 }
 
-function process (stream) { 
- // do stuff to `stream`
+function process (port) { 
+ // do stuff to `port`
 }
 
 module.exports = {
@@ -170,24 +184,23 @@ the return value of setup() is a list.
 the values in this list will be arguments to your process() function
 
 ```javascript
-var abitof = require('a-bit-of')
-
 function setup () { 
   var port = // setup serial port..
   var socket = // setup websocket port..
+  function passEmitter (em, ev) {
+    return em
+  }
   return [
-    abitof.kefir(port, 'data'),
-    abitof.kefir(socket, 'my-socket-event')
+    { em: port, ev: 'data', fn: passEmitter },
+    { em: socket, ev: 'my-socket-event', fn: passEmitter }
   ]
 }
 
-function process (serialPortStream, websocketStream) {
+function process (serialPort, websocket) {
   // do stuff with my two streams...
 }
 
 ```
-
-normally, you'll use `abitof.kefir(emitter, event)` to make [Kefir streams]() that you'll feed to process(). (if you want to stuff besides kefir, see [passing custom types to process()](## passing custom types to process()) below.)
 
 ### process (args...)
 
