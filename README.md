@@ -49,12 +49,11 @@ function setup () {
 }
 
 // our process fn will take that stream
-function process (stream) {
+function process (emitter) {
 
-  function timesTwo (x) { return x*2 }
-
-  stream.map(timesTwo).log()
-
+  emitter.on('new-number', function (x) {
+    console.log(x*2)
+  })
 }
 
 module.exports = {
@@ -78,7 +77,11 @@ var script = path.join(__dirname, '/script.js')
 abitof(script)
 ```
 
-`node` that latter file to run it, and start live-coding script.js!
+`node` that latter file to run it, and start editing the process() function in script.js!
+
+when you save your changes, the script will self-update right away.
+
+try making a syntax error. notice how it doesn't crash stuff!
 
 ## event emitters?
 
@@ -119,9 +122,6 @@ yes! a-bit-of uses [hotmop](http://github.com/elsehow/hotmop) to live-reload you
 **LIVE-RELOADING WILL ONLY WORK FOR YOUR PROCESS() FUNCTION!**
 
 see how they above example has a process() and a setup() function? setup() is run once - it connects to your sources of streaming data. _changes to process() will auto-refresh without interrupting the data streams you connected to in setup()_
-
-this is the "charm" of a-bit-of. see below
-
 
 # api
 
@@ -193,33 +193,14 @@ function setup () {
 }
 
 function process (serialPort, websocket) {
-  // do stuff with my two streams...
+  // do stuff with my two emitters...
 }
 
 ```
 
 the return value of setup() is a list of objects `{ em, ev, fn }`, where `em` is an event emitter, `ev` is an event (string), and `fn` is a function that also takes an emitter and an event. 
 
-the values in this list will turn into arguments to process():
-
-```javascript
-function setup () {
-  //..
-  return [
-    {
-      em: someEventEmitter,
-      ev: 'some-event',
-      fn: function (em, ev) {
-        return something(em,ev)
-      }
-    }
-  ]
-}
-```
-
-for each object of `{ em, ev, fn }`, we take the result of `fn(em, ev)` and pass it as an argument to process.
-
-we do this for object in setup's list of return values.
+the values in this list will turn into arguments to process(). specifically, for each object of `{ em, ev, fn }`, we take the result of `fn(em, ev)` and pass it as an argument to process.
 
 it's recommended that you wite helper functions for this. use examples/kefir.js as a template.
 
@@ -227,17 +208,16 @@ it's recommended that you wite helper functions for this. use examples/kefir.js 
 
 process() sets up ways to process your streaming data
 
-**saving changes to process() while your script is running will live-reload the changes without interrupting your data streams**
+process() gets its arguemnt from the return value of setup().
 
-process() gets its arguemnt from the return value of setup():
+**saving changes to process() while your script is running will live-reload the changes without interrupting your data streams**
 
 ```javascript
 var abitof = require('abitof')
  , io = require('socket.io-client')
  , serialport = require('serialport').SerialPort
  , Kefir = require('kefir')
-
-function makeStream (em, ev) { return Kefir.fromEvents(em, ev) }
+ , makeStream = function (em, ev) { return Kefir.fromEvents(em, ev) }
 
 function setup () {
   var port = new SerialPort('/dev/tty.MindWave')
@@ -258,14 +238,14 @@ function process (serialPortStream, websocketStream) {
 when we're setting up a-bit-of, we do:
 
 ```javascript
-abitof.charm(pathToScript)
+abitof(pathToScript)
 ```
 
-well, `abitof.charm` returns an event emitter:
+well, `abitof` returns an event emitter:
 
 ```javascript
 // load the script for live-reloading
-var emitter = abitof.running(pathToScript)
+var emitter = abitof(pathToScript)
 // handle return values from script's process() fn
 emitter.on('return-value', function (v) {
   console.log('process() function just changed! it returned', v)
