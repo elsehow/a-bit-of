@@ -4,15 +4,17 @@ a bit of fry & raes
 
 live-coding with FRP & arduino-/procsesing-inspired scripts
 
-[npm badge]()
+![npm badge](https://nodei.co/npm/a-bit-of.png?downloads=true)
 
 ## introduction
 
-live coding is [really great]()
+live coding is [really great](http://toplap.org/bricolage-the-world-of-live-coding/)
+
+long history in lisp and all that, still a core priority in clojure and clojurescript
 
 especially with streaming, asynchronous sources of data, like sensors or websockets
 
-a-bit-of helps you turn events from [EventEmitters]() into [Kefir streams](), a data structure that lets you perform operations on values over time (e.g. `map`, `filter`, `throttle`, `buffer`, etc).
+a-bit-of helps you turn events from [EventEmitters](http://www.sitepoint.com/nodejs-events-and-eventemitter/) into [Kefir streams](https://rpominov.github.io/kefir/), a data structure that lets you perform operations on values over time (e.g. `map`, `filter`, `throttle`, `buffer`, etc).
 
 don't like Kefir streams? thats ok - you can turn the event emitters into whatever you'd like. see [API - setup()](## setup()) examples/custom-types
 
@@ -71,6 +73,8 @@ module.exports = {
 
 ## event emitters?
 
+in javascript, event emitters are at the core of most asynchronous operations. i personally deal with streaming biosensor data, which sometimes comes over a bluetooth connection (serial) and sometimes through a websocket. in both cases, i need to parse and process the data.
+
 anything that looks like this is an event emitter:
 
 ```javascript
@@ -79,7 +83,7 @@ foo.on('bar', function () {
 })
 ```
 
-one example might be a [Socket.io]() connection. then you might have:
+one example might be a [Socket.io](http://socket.io) connection. then you might have:
 
 ```javascript
 socket.on('my-data-event', function (data) {
@@ -87,7 +91,7 @@ socket.on('my-data-event', function (data) {
 })
 ```
 
-[node streams]() have EventEmitters, too:
+[node streams](https://github.com/substack/stream-handbook) have EventEmitters, too:
 
 ```javascript
 process.stdout.on('data', function (data) {
@@ -95,7 +99,7 @@ process.stdout.on('data', function (data) {
 })
 ```
 
-so do [serialport]()s, etc..
+so do [serialport](https://www.npmjs.com/package/serialport)s, etc..
 
 a-bit-of lets you **live-code** with any EventEmitter - i.e. anything that conforms to this basic `foo.on('bar', function () {..})` pattern.
 
