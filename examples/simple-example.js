@@ -6,7 +6,7 @@ var  path = require('path')
 // get the absolute path to our script
 var script = path.join(__dirname, '/script.js')
 // set it up for *a bit of* live-coding!
-var abit = abitof(script)
+var abit = abitof.charm(script)
 
 // return-val event is triggered whenever app issaved 
 abit.on('return-val', function (r) {

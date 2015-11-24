@@ -1,5 +1,5 @@
 var EventEmitter = require('events').EventEmitter
-  , Kefir = require('kefir')
+  , abitof       = require('..')
 
 function setup () {
 
@@ -13,27 +13,22 @@ function setup () {
   }, 30)
 
   // let's turn that emitter into a Kefir stream ..
-  return {
-    args: [ 
-        [ myEmitter, 'number']
-    ],
-    fn: function (emitter, ev)  {
-      return Kefir.fromEvents(emitter, ev)
-    }
-  }
+  // this will be passed as an argument to process()
+  return [ 
+    abitof.kefir(myEmitter, 'number') 
+  ]
 }
 
 // our process fn will take that stream
 function process (stream) {
 
-  function timesTwo (x) { return x*0 }
+  function timesTwo (x) { return x*1 }
 
   var s = stream.map(timesTwo)
 
   s.log()
 
 }
-
 
 module.exports = {
   setup: setup,
