@@ -1,3 +1,9 @@
+/* A BIT OF
+ * elsehow
+ * github.com/elsehow/a-bit-of
+ * BSD license
+ */
+ 
 var Kefir = require('kefir')
 
 // returns an object

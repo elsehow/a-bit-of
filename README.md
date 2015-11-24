@@ -4,13 +4,11 @@ a bit of fry & raes
 
 live-coding with FRP & arduino-/procsesing-inspired scripts
 
-**NOTE**: this is under development. not finished!!
-
 [npm badge]()
 
 ## introduction
 
-live coding is really great
+live coding is [really great]()
 
 especially with streaming, asynchronous sources of data, like sensors or websockets
 
@@ -24,20 +22,20 @@ index.js:
 
 ```javascript
 var  path = require('path')
-  , abitof = require('../..')
+  , abitof = require('abitof')
 
 // run this, and live-code script.js!!
 
 // `charm` em with app.js
 var script = path.join(__dirname, '/script.js')
 // make sure to pass an absolute path
-abitof.running(script)
+abitof.charm(script)
 ```
 
 now, write a script.js for you to live-code:
 
 ```javascript
-var charm = require('abitof').charm
+var abitof = require('abitof')
 
 function setup () {
 
@@ -49,12 +47,9 @@ function setup () {
     n+=1; myEmitter.emit('new-number', n)
   }, 30)
 
-  return {
-    args: [{
-      emitter: myEmitter,
-      ev: 'new-number'
-    }]
-  }
+  return [
+    abitof.kefir(myEmitter, 'new-number')
+  ]
   
 }
 
@@ -74,7 +69,63 @@ module.exports = {
 
 ```
 
+## event emitters?
+
+anything that looks like this is an event emitter:
+
+```javascript
+foo.on('bar', function () {
+  //...
+})
+```
+
+one example might be a [Socket.io]() connection. then you might have:
+
+```javascript
+socket.on('my-data-event', function (data) {
+  // ..
+})
+```
+
+[node streams]() have EventEmitters, too:
+
+```javascript
+process.stdout.on('data', function (data) {
+  // ..
+})
+```
+
+so do [serialport]()s, etc..
+
+a-bit-of lets you **live-code** with any EventEmitter - i.e. anything that conforms to this basic `foo.on('bar', function () {..})` pattern.
+
+## live coding?
+
+yes! a-bit-of uses [hotmop](http://github.com/elsehow/hotmop) to live-reload your code, hotswapping the new version for the old one, whenever your file changes.
+
+**LIVE-RELOADING WILL ONLY WORK FOR YOUR PROCESS() FUNCTION!**
+
+see how they above example has a process() and a setup() function? setup() is run once - it connects to your sources of streaming data. _changes to process() will auto-refresh without interrupting the data streams you connected to in setup()_
+
+this is the "charm" of a-bit-of. see below
+
+
+
 # api
+
+## abitof.charm(appPath)
+
+load a user script for live-reloading:
+
+```javascript
+abitof.charm('/home/elsehow/my-script.js')
+```
+
+takes an absolute path to a user script file.
+
+see below for format of the user script.
+
+## user script structure
 
 user scripts export 2 functions: setup() and process()
 
@@ -82,21 +133,21 @@ setup() functions send arguments to process().
 
 process() sets up listeners that deal with the data that comes over the event emitters.
 
-## script files
-
-scripts should export 2 functions: `setup` and `process`
-
-so, at the end of every script file, a `module.exports` statement can expose these:
+a `module.exports` statement can expose these two functions:
 
 ```javascript
+var abitof = require('a-bit-of')
 
-// function setup () { 
-//  ...
-// }
+function setup () { 
+  var port = // setup serial port..
+  return [
+    abitof.kefir(port, 'data')
+  ]
+}
 
-// function process () { 
-//  ...
-// }
+function process (stream) { 
+ // do stuff to `stream`
+}
 
 module.exports = {
   setup: setup,
@@ -104,129 +155,150 @@ module.exports = {
 }
 ```
 
-## setup ()
+### setup()
 
-setup() functions pass data into process() functions
+setup() is responsible for connecting to your sources of streaming data
 
-we do this by a special syntax. (if you're wondering why this syntax looks like this, see [What's Going On?](#what's going on?)
+it gets run once - while changes to process() will get live reloaded, changes to setup() will not. this assures that your data keeps flowing without interruption, and without the need to reconnect on code changes
 
-here's an example of how to structure return values for `setup()` functions 
+the return value of setup() is a list. 
+
+the values in this list will be arguments to your process() function
 
 ```javascript
+var abitof = require('a-bit-of')
+
+function setup () { 
+  var port = // setup serial port..
+  var socket = // setup websocket port..
+  return [
+    abitof.kefir(port, 'data'),
+    abitof.kefir(socket, 'my-socket-event')
+  ]
+}
+
+function process (serialPortStream, websocketStream) {
+  // do stuff with my two streams...
+}
+
+```
+
+normally, you'll use `abitof.kefir(emitter, event)` to make [Kefir streams]() that you'll feed to process(). (if you want to stuff besides kefir, see [special return types](## passing custom types to process()) below.)
+
+### process (args...)
+
+process() sets up ways to process your streaming data
+
+**saving changes to process() while your script is running will live-reload the changes without interrupting your data streams**
+
+process() gets its arguemnt from the return value of setup():
+
+```javascript
+var abitof = require('abitof')
+ , io = require('socket.io-client')
+ , serialport = require('serialport').SerialPort
+
 function setup () {
+  var port = new SerialPort('/dev/tty.MindWave')
+  var socket = io('my-socket-server')
+  return [
+    abitof.kefir(port, 'data'),
+    abitof.kefir(socket, 'data'),
+  ]
+}
 
+function process (serialPortStream, websocketStream) {
   // do stuff ...
-
-  return {
-    args: [
-      {
-        emitter: myEmitter,
-        ev: 'some-event',
-      {
-    ], 
-    fn: function (em, ev) {
-      return Kefir.fromEvents(em, ev)
-    }
-  }
 }
 ```
 
-`args` is a list of objects with keys `{emitter, event}`. `emitter` is an [EventEmitter](), and `ev` is a string.
+so, the length of your setup() function's return value
+dictates the number of arguments that get fed to `process`.
 
-`fn` gets applied to every event in `args`.
+## passing custom types to process()
 
-the result of executing `fn` on each event in `args` is what gets passed to the process() function
+don't like kefir streams?
 
-notice how, in the above examples, we didn't specify `fn`, and we got a Kefir stream in process(). the `fn` listed above is the default value - if you don't specify `fn`, that's what gets executed.
-
-overwriting `fn` is recommended if you'd like to work with:
+after all, you might want to work with:
 
 - Rx observables
 - raw event emitters
 - some other FRP library
 - etc...
 
-## process (args...)
+passing your own, custom types to process() is easy.
 
-the process() function takes the results of executing your setup's `fn` on each `{emitter, event}` object in your setup's `args`
+lets see how `abitof.kefir` is defined:
 
 ```javascript
-function setup () {
-  // ...
-  return {
-    args: [
-      {
-        emitter: emitter1, 
-        ev: 'event1'
-      },
-      {
-        emitter: emitter2, 
-        ev: 'event2'
-      },
-    ],
-    fn: function (em, ev) {
-      return Kefir.fromEvents(em, ev)
-    }
-  }
-}
+ 
+var Kefir = require('kefir')
 
-function process (stream1, stream2) {
-  // do stuff ...
+// returns an object
+//
+//    { em, ev, fn }
+//
+// everytime process() is reloaded,
+// all listeners on `ev` get removed from `em`
+// then we do fn(em,ev), and pass the result to process()
+
+module.exports = function (em, ev) {
+
+  return {
+
+    em: em,
+
+    ev: ev,
+
+    fn: function (emitr, evnt) {
+      return Kefir.fromEvents(emitr, evnt)
+    }
+
+  }
+
 }
 ```
-so, the length of your setup() function's `args` return value
 
-dictates the number of arguments that get fed to `process`
+all this does is pass an object `{ em, ev, fn }`
 
-the function `fn` in your setup()'s return type
+what gets passed to process() is the result of `fn(em, ev)`
 
-dictates the types of the arguments fed to process()
+so simple! just write a functon that takes an emitter and an event, and returns an object `{ em, ev, fn }`, where `em` is an event emitter, `ev` is an event (string), and `fn` is a function that also takes an emitter and an event. use this abitof.kefir as your template.
 
-## event emitters 
-
-one example might be a [Socket.io]() connection. then you might have:
-
-  {
-    emitter: socket,
-    event: 'my-websocket-event'
-  }
-
-[node streams]() have EventEmitters, too:
-
-  { 
-    emitter: process.stdout,
-    event: 'data'
-  }
-
-so do [serialport]()s, etc..
-
-
-### returning values from process
+## returning values from process
 
 when we're setting up a-bit-of, we do:
 
-  abitof.running(pathToScript)
+```javascript
+abitof.charm(pathToScript)
+```
 
-well, this function returns an event emitter:
+well, `abitof.charm` returns an event emitter:
 
-  // load the script for live-reloading
-  var emitter = abitof.running(pathToScript)
-  // handle return values from script's process() fn
-  emitter.on('return-value', function (v) {
-    console.log('process() function just changed! it returned', v)
-  })
+```javascript
+// load the script for live-reloading
+var emitter = abitof.running(pathToScript)
+// handle return values from script's process() fn
+emitter.on('return-value', function (v) {
+  console.log('process() function just changed! it returned', v)
+})
+//handle errors
+emitter.on('error', function (err) {
+  console.log('some error!')
+})
 
-one 'return-value' event will be returned every time the process() function is modified in the script
+```
+
+one 'return-value' event will be returned every time the user-script is re-loaded!
 
 # examples
 
 ## simple-example
 
-go into this directory and
-
+    cd examples/simple-example
     node simple-example.js
 
-now, edit the `process()` function in script.js.
+now, make changes to process() in script.js
 
 save your changes
 
@@ -244,11 +316,11 @@ meanwhile, your event emitters are still pumping events out, undisturbed!
 
 ## multiple-streams
 
-here,
-
+    cd examples/multiple-streams
     node multiple-streams.js
 
 and live-code script.js
 
-TODO add more
+notice how we're passing multiple streams to process()
 
+notice also how process() returns a stream, which we get back in multiple-streams.js

@@ -1,5 +1,5 @@
 var  path = require('path')
-  , abitof = require('..')
+  , abitof = require('../..')
 
 // run this, and live-code script.js!!
 

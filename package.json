@@ -1,6 +1,6 @@
 {
   "name": "a-bit-of",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "live-code with event emitters - processing / arduino style!",
   "main": "indes.js",
   "repository": {
@@ -20,9 +20,7 @@
   },
   "homepage": "https://github.com/elsehow/a-bit-of#readme",
   "dependencies": {
-    "hotmop": "0.0.2"
-  },
-  "devDependencies": {
-    "kefir": "^3.1.0"
+    "hotmop": "0.0.2",
+     "kefir": "^3.1.0"
   }
 }
