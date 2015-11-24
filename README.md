@@ -16,7 +16,7 @@ especially with streaming, asynchronous sources of data, like sensors or websock
 
 a-bit-of helps you turn events from [EventEmitters](http://www.sitepoint.com/nodejs-events-and-eventemitter/) into [Kefir streams](https://rpominov.github.io/kefir/), a data structure that lets you perform operations on values over time (e.g. `map`, `filter`, `throttle`, `buffer`, etc).
 
-don't like Kefir streams? thats ok - you can turn the event emitters into whatever you'd like. see [API - setup()](## setup()) examples/custom-types
+don't like Kefir streams? thats ok - you can turn the event emitters into whatever you'd like. see: [passing custom types to process()](## passing custom types to process())
 
 ## usage
 
@@ -187,7 +187,7 @@ function process (serialPortStream, websocketStream) {
 
 ```
 
-normally, you'll use `abitof.kefir(emitter, event)` to make [Kefir streams]() that you'll feed to process(). (if you want to stuff besides kefir, see [special return types](## passing custom types to process()) below.)
+normally, you'll use `abitof.kefir(emitter, event)` to make [Kefir streams]() that you'll feed to process(). (if you want to stuff besides kefir, see [passing custom types to process()](## passing custom types to process()) below.)
 
 ### process (args...)
 
