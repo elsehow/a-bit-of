@@ -20,7 +20,9 @@
   },
   "homepage": "https://github.com/elsehow/a-bit-of#readme",
   "dependencies": {
-    "hotmop": "0.0.2",
-     "kefir": "^3.1.0"
+    "hotmop": "0.0.2"
+  },
+  "devDependencies": {
+    "kefir": "^3.1.0"
   }
 }

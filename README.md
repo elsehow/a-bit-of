@@ -12,9 +12,9 @@ long history in lisp and all that, still a core priority in clojure and clojures
 
 especially with streaming, asynchronous sources of data, like sensors or websockets
 
-a-bit-of helps you turn events from [EventEmitters](http://www.sitepoint.com/nodejs-events-and-eventemitter/) into [Kefir streams](https://rpominov.github.io/kefir/), a data structure that lets you perform operations on values over time (e.g. `map`, `filter`, `throttle`, `buffer`, etc).
+a-bit-of helps you live-code with [EventEmitters](http://www.sitepoint.com/nodejs-events-and-eventemitter/) using sketches similar to those found in [Processing](https://processing.org/) and [Arduino](https://www.arduino.cc/).
 
-don't like Kefir streams? thats ok - you can turn the event emitters into whatever you'd like. see: [passing custom types to process()](## passing custom types to process())
+you'll be able to save your scripts, updating the runtime without interrupting the stream of events from your event emitters
 
 ## usage
 
@@ -179,10 +179,6 @@ setup() is responsible for connecting to your sources of streaming data
 
 it gets run once - while changes to process() will get live reloaded, changes to setup() will not. this assures that your data keeps flowing without interruption, and without the need to reconnect on code changes
 
-the return value of setup() is a list. 
-
-the values in this list will be arguments to your process() function
-
 ```javascript
 function setup () { 
   var port = // setup serial port..
@@ -202,6 +198,31 @@ function process (serialPort, websocket) {
 
 ```
 
+the return value of setup() is a list of objects `{ em, ev, fn }`, where `em` is an event emitter, `ev` is an event (string), and `fn` is a function that also takes an emitter and an event. 
+
+the values in this list will turn into arguments to process():
+
+```javascript
+function setup () {
+  //..
+  return [
+    {
+      em: someEventEmitter,
+      ev: 'some-event',
+      fn: function (em, ev) {
+        return something(em,ev)
+      }
+    }
+  ]
+}
+```
+
+for each object of `{ em, ev, fn }`, we take the result of `fn(em, ev)` and pass it as an argument to process.
+
+we do this for object in setup's list of return values.
+
+it's recommended that you wite helper functions for this. use examples/kefir.js as a template.
+
 ### process (args...)
 
 process() sets up ways to process your streaming data
@@ -214,13 +235,16 @@ process() gets its arguemnt from the return value of setup():
 var abitof = require('abitof')
  , io = require('socket.io-client')
  , serialport = require('serialport').SerialPort
+ , Kefir = require('kefir')
+
+function makeStream (em, ev) { return Kefir.fromEvents(em, ev) }
 
 function setup () {
   var port = new SerialPort('/dev/tty.MindWave')
   var socket = io('my-socket-server')
   return [
-    abitof.kefir(port, 'data'),
-    abitof.kefir(socket, 'data'),
+    makeStream(port, 'data'),
+    makeStream(socket, 'data'),
   ]
 }
 
@@ -228,59 +252,6 @@ function process (serialPortStream, websocketStream) {
   // do stuff ...
 }
 ```
-
-so, the length of your setup() function's return value
-dictates the number of arguments that get fed to `process`.
-
-## passing custom types to process()
-
-don't like kefir streams?
-
-after all, you might want to work with:
-
-- Rx observables
-- raw event emitters
-- some other FRP library
-- etc...
-
-passing your own, custom types to process() is easy.
-
-lets see how `abitof.kefir` is defined:
-
-```javascript
- 
-var Kefir = require('kefir')
-
-// returns an object
-//
-//    { em, ev, fn }
-//
-// everytime process() is reloaded,
-// all listeners on `ev` get removed from `em`
-// then we do fn(em,ev), and pass the result to process()
-
-module.exports = function (em, ev) {
-
-  return {
-
-    em: em,
-
-    ev: ev,
-
-    fn: function (emitr, evnt) {
-      return Kefir.fromEvents(emitr, evnt)
-    }
-
-  }
-
-}
-```
-
-all this does is pass an object `{ em, ev, fn }`
-
-what gets passed to process() is the result of `fn(em, ev)`
-
-so simple! just write a functon that takes an emitter and an event, and returns an object `{ em, ev, fn }`, where `em` is an event emitter, `ev` is an event (string), and `fn` is a function that also takes an emitter and an event. use this abitof.kefir as your template.
 
 ## returning values from process
 
