@@ -18,7 +18,6 @@ you'll be able to save your scripts, updating the runtime without interrupting t
 
 ## usage
 
-
 write a script.js file you to live-code:
 
 ```javascript
@@ -292,3 +291,11 @@ and live-code script.js
 notice how we're passing multiple streams to process()
 
 notice also how process() returns a stream, which we get back in multiple-streams.js
+
+## trivia
+
+this package is named after [a bit of fry and laurie](https://en.wikipedia.org/wiki/A_Bit_of_Fry_%26_Laurie), an oblique reference to Ben Fry & Casey Raes, the developers of Processing language, from which i took inspiration for the format of user scripts.
+
+## license
+
+BSD-2-Clause
