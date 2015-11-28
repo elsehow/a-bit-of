@@ -1,0 +1,34 @@
+QUESTIONS:
+
+- every time i reload a file, it does it twice. why?
+
+- if i reference some module from my script, and change that, it won't update.... what's a way around that?
+  * hard reload button?
+
+- how come NOTHING hot-reloads when i run my script from sketchbook? weird..
+
+- how would i test this thing?
+  - how would i see what update functions were doing?
+  - how could i make sure that the right stuff was going to the right places?
+
+
+
+
+NOTES
+
+- everything has stream inputs + outputs... except setup()
+  this caused a bug, just because it broke a rhythm/ pattern
+  maybe each is different, who knows.
+
+
+- what if this were just arbitrary arrangements
+  of producer -> transform -> consumer
+  tied together by kefir
+  consumer()s got executed in a browser/node environment.
+  would be cool, but KISS for now
+
+
+- what if only the transformer hot-reloaded?
+  seems reasonable, no?
+
+

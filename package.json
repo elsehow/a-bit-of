@@ -1,8 +1,11 @@
 {
   "name": "a-bit-of",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "live-code with event emitters - processing / arduino style!",
   "main": "indes.js",
+  "scripts": {
+    "test": "bash test/test.sh | tap-spec"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/elsehow/a-bit-of.git"
@@ -20,9 +23,11 @@
   },
   "homepage": "https://github.com/elsehow/a-bit-of#readme",
   "dependencies": {
-    "hotmop": "0.0.2"
+    "hotmop": "^0.1.0"
   },
   "devDependencies": {
-    "kefir": "^3.1.0"
+    "kefir": "^3.1.0",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.2.2"
   }
 }

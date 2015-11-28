@@ -4,108 +4,215 @@
  * BSD license
  */
 
-var path = require('path')
+var Kefir = require('kefir')
+  , hotmop = require('hotmop')
   , EventEmitter = require('events').EventEmitter
 
-// api:
-//
-//    abitof('/home/elsehow/my-script.js')
-//
-// takes: absolute path to a script file.
-//        see readme for the structure of that file.
-//
+// validators
+function setupFnValidator (returnVal) {
+  // TODO validate that API is ok
+  // TODO - that it's a list
+  // TODO - that each item is [emitter, event]
+  // TODO emit 'err', config.errorMessages.badSetupReturnValue
+  // turn each return value into a kefirStream
+  return 
+}
 
-module.exports = function (scriptPath) {
+function processFnValidator (returnVal) {
+  // TODO make sure it's a list of streams
+  return
+}
 
-  // we create + return an event emitter
-  // where each value in the stream is 
-  // the return value of `app`at the time it was saved
+function outputFnValidator (returnVal) {
+  // TODO make sure its whatever i decide that api is
+  // TODO that each item `output()` returns is a fn
+  return
+}
+
+function validate (fn, fnArgsList, validator, cb) {
+  // run validator function on the fn's output
+  var rv = fn.apply(null, fnArgsList)
+  var err = validator(rv)
+  if (err) {
+    cb(err)
+    return
+  }
+  cb(null, rv)
+  return
+}
+
+function makeRemoveEventListenersFn (setupFnOutput) {
+  return function () {
+    setupFnOutput.forEach((e) =>  {
+      e[0].removeAllListeners(e[1])
+    })
+  }
+}
+
+function makeKefirStreams (setupFnOutput) {
+  return setupFnOutput.map((e) => {
+    return Kefir.fromEvents(e[0], e[1])
+  })
+}
+
+// applies fn, a method of each item in listOne, to each item in listTwo
+// this works even if the lists aren't equal length
+// or if the lists are falsey.
+function doOnEach (fn, listOne, listTwo) {
+  if (listOne && listTwo) {
+    listOne.forEach((e, i) => {
+      if (listTwo[i])
+        e[fn](listTwo[i])
+      return
+    })
+  }
+  return
+}
+
+// does stream.offValue(function)
+// for each stream & function
+function unplugEach (streams, functions) {
+  doOnEach('offValue', streams, functions)
+  return
+}
+
+// does stream.onValue(function)
+// for each stream & function
+function plugEach (streams, functions) {
+  doOnEach('onValue', streams, functions)
+  return
+}
+
+module.exports = function (setupPath, processPath, outputPath) {
+
+  //  state
+  var oldSetupOutput = []
+  var oldProcessedStreams = []
+  var oldOutputFns =  []
+  var removeEventListeners = function () { }
+
+  // this function returns an event emitter
+  // it will emit
+  // 
+  //    - 'error' (err)
+  //    - 'setup-update' (returnValue)
+  //    - 'process-update' (returnValue)
+  //    - 'output-update' (returnValue)
+  //
   var emitter = new EventEmitter()
 
-  // hotswap overrides `require`
-  // but this will only matter for for `scriptPath`.
-  // it will cause scriptPath's require() statement to hot reload!
-  //
-  // `hotswap` here is an event emitter
-  // it will emit:
-  //
-  //   - 'error' (err) -- an error
-  //   - 'swap'  ()    -- notification that scriptPath was swapped.
-  //
-  var hotswap = require('hotmop')(scriptPath) 
-
-  var script = require(scriptPath)
-
-  // let's run the script's setup()
-  var rv = script.setup()
-
-  // the return value of `script` is a list
-  //
-  //    [ {em, ev, fn} ... ]
-  //
-  // our job is to 
-  //
-  // (1) make a fn to remove all event handlers
-  //     we use this when process refreshes, so we can add new event handlers
-  //
-  // (2) make a fn that generates the args from process
-  //     again, when procss refreshes, we re-generate the 
-  //     arguments and run it again creating new event handlers.)
-
-  function removeAllEventHandlers () {
-    return rv.forEach(function (o) {
-      o.em.removeAllListeners(o.ev)
-    })
-  }
-
-  function generateArgsForProcess () {
-    return rv.map(function (o) {
-      return o.fn(o.em, o.ev)
-    })
-  }
-
-  // whenever there's any error in the app
   function handleError (err) {
     // emit an error
     emitter.emit('error', err)
-    // tares down the app to prevent further error-ing
-    removeAllEventHandlers()
+    //taredown app
+    removeEventListeners()
     return
   }
 
-  // we run this to start the app
-  // it returns a function that re-loads the app
-  // (changes to process() are hot-reloaded - changes to setup() are not)
-  function bootstrap (s) {
+  var hotswap = hotmop(setupPath, processPath, outputPath)
 
-    // returns fn to run script 
-    return function () {
-      // remove old listeners
-      removeAllEventHandlers()
-      // execute process() on setup()'s arguments
-      // NOTE! we're running `s`, from out of scope
-      // we're referring to the `s` that's been `require`d 
-      // into the module-level scope, below
-      var pargs = generateArgsForProcess()
-      var r = s.process.apply(null, generateArgsForProcess())
-      // emit process()'s return values
-      emitter.emit('return-val', r)
+  var setupFn = require(setupPath)
+  var processFn = require(processPath)
+  var outputFn = require(outputPath)
+
+  // when setup() changes:
+  // we re-run it, establishing all of our event emitters anew
+  // then we make kefir streams of them
+  // and pass them to process()
+  // finaly, we plug the return values from process() (streams)
+  // into the return values from output() (fns)
+  function refreshSetup () {
+    console.log('setting up the whole deal...')
+    // check function for syntax errors
+    // and make sure its return value conforms to API
+    validate(setupFn, null, setupFnValidator, (err, returnVal) => {
+      // emit any errors
+      if (err) {
+        handleError(err)
+        return
+      }
+      // otherwise, we're good to go
+      // we remove our old event listeners
+      removeEventListeners()
+      // save a new function for removing these new event listeners we're about to make
+      removeEventListeners = makeRemoveEventListenersFn(returnVal)
+      // make streams out of these emitters and events
+      var newSources = makeKefirStreams(returnVal)
+      // emit the new kefir streams we made
+      emitter.emit('setup-update', newSources)
+      // make new processed streams
+      var newProcessedStreams = processFn.apply(null, newSources)
+      // unplug old streams from old outputs
+      unplugEach(oldProcessedStreams, oldOutputFns)
+      // plug new streams into old outputs
+      plugEach(newProcessedStreams, oldOutputFns)
+      // update `oldSetupOutput` global
+      // TODO - this is the odd one out in the pattern
+      // everything else returns a stream.....
+      oldSetupOutput = returnVal
       return
-    }
-
+    })
+    return
   }
 
- 
-  // we set up the hot-reload functionality here
-  var runFn = bootstrap(script)
-  // run once
-  runFn()
-  // re-run on reload
-  hotswap.on('swap', runFn)
-  // setup error listeners
-  hotswap.on('error', handleError) 
+  // when process() changes:
+  // unsubscribe old streams to outputs
+  // subscribe new streams to outputs
+  function refreshProcess () {
+    console.log('setting up process')
+    // FIRST, remove all old event listeners
+    removeEventListeners()
+   // make streams out of these (now listener-less) emitters and events
+    var newSources = makeKefirStreams(oldSetupOutput)
+    // now we can validate the new function..
+    validate(processFn, newSources, processFnValidator, (err, returnVal) => {
+      // make some new event listenres by executing process() on the existing sources
+      var newProcessedStreams = returnVal
+      // emit the new processed streams we made
+      emitter.emit('process-update', newProcessedStreams)
+      // unplug old streams from the old output function
+      unplugEach(oldProcessedStreams, oldOutputFns) 
+      // plug new streams into the old output functions
+      plugEach(newProcessedStreams, oldOutputFns)
+      // update `oldProcessedStreams` global
+      oldProcessedStreams = newProcessedStreams
+      return
+    })
+  }
 
-  // return an emitter that emits 'return-val' events on file swap
+  // when output() changes:
+  // unsubscribe streams to old outputs
+  // subscribe streams to new outputs
+  function refreshOutput () {
+    console.log('setting up output')
+    validate(outputFn, null, outputFnValidator, (err, returnVal) => {
+      var newOutputFns = returnVal
+      // emit the new output fns we made
+      emitter.emit('output-update', newOutputFns)
+      // unplug old streams from old output functions
+      unplugEach(oldProcessedStreams, oldOutputFns)
+      // plug old streams into the new output functions
+      plugEach(oldProcessedStreams, newOutputFns)
+      // update `oldOutputFns global`
+      oldOutputFns = newOutputFns
+      return
+    })
+  }
+
+  // run all the routines for the first time 
+  refreshSetup()
+  refreshProcess()
+  refreshOutput()
+
+  // setup handlers for future hot-swaps
+  hotswap.on(setupPath, refreshSetup)
+  hotswap.on(processPath, refreshProcess) 
+  hotswap.on(outputPath, refreshOutput)
+
+  // handle any errors
+  // syntax errors on the files will be emitted here
+  hotswap.on('error', handleError)
+
+  // finally, return our emitter
   return emitter
-
-}
+} 
