@@ -1,7 +1,7 @@
 function process (oneStream) {
 
   return [
-    oneStream.map(x => x*1)
+    oneStream.map(x => x*3)
   ]
 
 }

@@ -5,6 +5,8 @@ QUESTIONS:
 - if i reference some module from my script, and change that, it won't update.... what's a way around that?
   * hard reload button?
 
+- how come NOTHING hot-reloads when i run my script from sketchbook? weird..
+
 - how would i test this thing?
   - how would i see what update functions were doing?
   - how could i make sure that the right stuff was going to the right places?
