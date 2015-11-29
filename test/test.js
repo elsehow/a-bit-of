@@ -4,7 +4,7 @@ var EventEmitter = require('events').EventEmitter
 // our consumer function emits 'value' events through this emitter
 var outputEmitter = new EventEmitter()
 
-// test fns ---------------------------------------------------------
+// test setup ---------------------------------------------------------
 
 // a producer that produces 1s
 function producer () {
@@ -42,7 +42,10 @@ function consumer (stream) {
 // setup abitof
 var bit = abitof(producer, transform, consumer)
 
+
 // tests -----------------------------------------------------
+
+// test function swapping =====================================
 
 test('consumer should be emitting 1s', function (t) {
   t.plan(1)
@@ -116,7 +119,15 @@ test('should be able to swap consumer function', function (t) {
   })
 })
 
-
 // TODO TESTS
 // test taredown fn in consumer
 // test that consumer can set stuff up
+
+
+// test input parsing =====================================
+
+// API conforming:
+// - consumer: return [,]...
+// - producer: returns stream
+// - consumer: returns function / object of functions
+// - swap...(): input is a function that passes the appropriate test, above
