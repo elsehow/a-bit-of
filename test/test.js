@@ -1,60 +1,125 @@
-var abitof = require('..')
- , test = require('tape')
- , fs = require('fs')
- , path = require('path')
+var test = require('tape')
+var EventEmitter = require('events').EventEmitter
 
-function readSync (p) {
-  return fs.readFileSync(p)
+// our consumer function emits 'value' events through this emitter
+var outputEmitter = new EventEmitter()
+
+//  tester fns --------------------------------------------------
+
+// a producer that produces 1's
+function producer () {
+  // make an event emitter
+  var oneEmitter = new EventEmitter()
+  setInterval(() =>  {
+    oneEmitter.emit('number', 1)
+  }, 500)
+  // return value conforms to the producer API
+  return [ oneEmitter, 'number' ]
 }
 
-function writeSync (f, d) {
-  fs.writeFileSync(f, d, { flags: 'w' })
-  return
+// a transform that multiples everything by 2
+// takes a stream from the producer
+function transform (oneStream) {
+  return oneStream.map( (x) => x*2 )
 }
 
-function copySync (p1, p2) {
-  writeSync(p2, readSync(p1))
-  return
+// a consumer that emits everything over an emitter we have
+function consumer (stream) {
+  return {
+    handle: (x) => testEmitter.emit(x, 'value'),
+    taredown: () => return
+  }
 }
 
-function pathTo (f) {
-  return __dirname + '/' + f
-}
-
-function writeScript (sourceScript, targetScript) {
-  copySync(pathTo(sourceScript), pathTo(targetScript))
-  return
-}
-
-// write in our initial scripts
-writeScript('src/setup-1.js', 'scratch/setup.js')
-writeScript('src/process-1.js', 'scratch/process.js')
-writeScript('src/output-1.js', 'scratch/output.js')
-    
-// test-wide reference to our abitof emitter
 // setup abitof
-var emitter = abitof( 
-    pathTo('scratch/setup.js'),
-    pathTo('scratch/process.js'),
-    pathTo('scratch/output.js'))
+var bit = abitof(producer, transform, consumer)
 
-// emitter.on('process-update', function (rv) {
-//   console.log(rv)
-// }
 
-// test('should emit 1 \'process-update\' when we change process script', function (t) {
-//   emitter.on('process-update', (r) =>  {
-//     t.ok(r)
-//     t.end()
-//   })
-// })
+// tests -----------------------------------------------------
 
-// test('\'process-update\' should contain a list of streams', function (t) {
-//   emitter.on('process-update', (r) =>  {
-//     r.forEach((i) =>
-//       t.ok(i._dispatcher))
-//     t.end()
-//   })
-//   writeScript('src/process-1.js', 'scratch/process.js')
-// })
+// test function swapping =====================================
 
+test('consumer should be emitting 1\'s', function (t) {
+  t.plan(1)
+  outputEmitter.on('value', (v) => {
+    t.equal(v, 1)
+    outputEmitter.removeAllListeners('value')
+  })
+})
+
+test('should be able to swap producer function', function (t) {
+  t.plan(1)
+  // make a new producer function
+  function newProducer () {
+    // make an event emitter that emitts 0
+    var countUpEmitter = new EventEmitter()
+    setInterval(() =>  {
+      countUpEmitter.emit('number', 0)
+    }, 500)
+    // return value conforms to the producer API
+    return [ countUpEmitter, 'number' ]
+  }
+  // swap it in
+  bit.swapProducer(newProducer)
+  // output should update
+  outputEmitter.on('value', (v) => {
+    t.equal(v, 0)
+    outputEmitter.removeAllListeners('value')
+  })
+})
+
+test('should be able to swap transform function', function (t) {
+  t.plan(1)
+  // make a new transform function that adds 1 to the zeroes
+  function newTransform (zeroStream) {
+    return zeroStream
+      .map((x) => x+1)
+  }
+  // swap it in
+  bit.swapTransform(newProducer)
+  // consumer should now be pushing 1s
+  outputEmitter.on('value', (v) => {
+    t.equal(v, 1)
+    outputEmitter.removeAllListeners('value')
+  })
+})
+
+test('should be able to swap consumer function', function (t) {
+  t.plan(1)
+  // make a new event emitter to test our consumer function
+  var newOutputEmitter = new EventEmitter()
+  // make a new consumer function that outputs over this emitter
+  function newConsumer (stream) {
+
+    function handle (x) { 
+      newOutputEmitter.emit(x, 'value')    
+    }
+
+    function taredown () {}
+
+    return {
+      handle: handle,
+      taredown: taredown,
+     }
+  } 
+  // swap it in
+  bit.swapConsumer(newConsumer)
+  // // we should
+  newOutputEmitter.on('value', (v) => {
+    t.equal(v, 1)
+    newOutputEmitter.removeAllListeners('value')
+  })
+})
+
+// TODO TESTS
+// test taredown fn in consumer
+// test that consumer can set stuff up
+
+
+// test input parsing =====================================
+
+// API conforming:
+// - consumer: return [,]...
+// - producer: returns stream
+// - consumer: returns function / object of functions
+// - swap...(): input is a function that passes the appropriate test, above
