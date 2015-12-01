@@ -6,14 +6,14 @@ the user inputs 3 functions
 
 these functions, in order, are
 
-### producer
+### origin
 
 takes nothing
 
 returns [ emitter, 'event' ]
 
 ```javascript
-function producer () {
+function origin () {
   // port is an EventEmitter
   port = serialport('/dev/tty.MindWave')
   // we want to make a stream of its 'data' events
@@ -64,7 +64,7 @@ function consumer (fftStream) {
 
 ## api
 
-### swapProducer(producerFunction)
+### swaporigin(originFunction)
 
 ### swapTransform(transformFunction)
 

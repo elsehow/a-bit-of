@@ -4,38 +4,30 @@ var EventEmitter = require('events').EventEmitter
 // our consumer function emits 'value' events through this emitter
 var outputEmitter = new EventEmitter()
 
-// test setup ---------------------------------------------------------
+//  tester fns --------------------------------------------------
 
-// a producer that produces 1s
+// a producer that produces 1's
 function producer () {
   // make an event emitter
-  var countUpEmitter = new EventEmitter()
+  var oneEmitter = new EventEmitter()
   setInterval(() =>  {
-    countUpEmitter.emit('number', 1)
+    oneEmitter.emit('number', 1)
   }, 500)
   // return value conforms to the producer API
-  return [ countUpEmitter, 'number' ]
+  return [ oneEmitter, 'number' ]
 }
 
 // a transform that multiples everything by 2
 // takes a stream from the producer
-function transform (countUpStream) {
-  return countUpStream
-    .map((x) => x*2)
+function transform (oneStream) {
+  return oneStream.map( (x) => x*2 )
 }
 
 // a consumer that emits everything over an emitter we have
 function consumer (stream) {
-
-  function handle (x) { 
-    testEmitter.emit(x, 'value')    
-  }
-
-  function taredown () {}
-
   return {
-    handle: handle,
-    taredown: taredown,
+    handle: (x) => testEmitter.emit(x, 'value'),
+    taredown: () => return
   }
 }
 
@@ -47,7 +39,7 @@ var bit = abitof(producer, transform, consumer)
 
 // test function swapping =====================================
 
-test('consumer should be emitting 1s', function (t) {
+test('consumer should be emitting 1\'s', function (t) {
   t.plan(1)
   outputEmitter.on('value', (v) => {
     t.equal(v, 1)

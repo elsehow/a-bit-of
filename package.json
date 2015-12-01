@@ -4,7 +4,7 @@
   "description": "live-code with streaming data",
   "main": "index.js",
   "scripts": {
-    "test": "node test/test.js"
+    "test": "node test/spec/OriginSpec.js | tap-spec"
   },
   "repository": {
     "type": "git",
@@ -18,5 +18,8 @@
   "homepage": "https://github.com/elsehow/a-bit-of#readme",
   "dependencies": {
     "tape": "^4.2.2"
+  },
+  "devDependencies": {
+    "tap-spec": "^4.1.1"
   }
 }

@@ -3,6 +3,8 @@
 
 - what are the pros and cons of supporting multiple input/output streams?
 
+- how would multiple streams work?
+
 - are we describing a DAG? do we want that to be clear from the API?
 
 - consumers are being passed a stream....but not using them. this is weird, no? how can we deal with this
@@ -30,6 +32,67 @@ PROS
 - can transform by combining streams!
 - can graph multiple streams at once!
 
+## how would multiple streams work? 
+
+instinct is -
+
+take and return streams.........in order
+'
+
+```javascript
+
+function origin ()  {
+  return [
+    charm.stream(emitter1, 'data'),
+    charm.stream(emitter2, 'data'),
+  ] 
+}
+
+// WEIRD: how did these become streams?
+function transform (stream1, stream2) {
+  return [
+    stream1.map(fn1),
+    stream2.map(fn2),
+  ]
+}
+
+// WEIRD: stream1 and stream2 still dont appear in the function body
+function consumer (stream1, stream2) {
+  return {
+    setup: function () {
+      // do setup stuff
+    }
+    processes: [
+      function (x) { handleStream1Val(x) },
+      function (x) { handleStream2Val(x) },
+    ],
+    taredown: function () {
+      // do taredown stuff
+    }
+  }
+
+}
+
+
+```
+
+now.......that is GREAT if we dont mind our functions doing more than one thing.......BUT, if we restart our neurosky, we dont necessarily want to restart our myo........u feel me? 
+
+if a prdoucer splits a stream, THAT is fine/good. anything can output multiple streams AND anything can take multiple streams
+
+............but..............there should be a way for my myo and my mindwave to get processed totally in parallel (so easy to imagine in max/msp land)
+
+but in js???
+
+dont worry.
+the idea is,
+allow multiple inputs/outputs across the aboard.
+coordinating multiple origins    (&consumers&transforms)... worry abt it later
+1st just 1 string
+
+
+
+
 ## are we describing a DAG? do we want that to be clear from the API?
 
 ## consumers are being passed a stream....but not using them. this is weird, no? how can we deal with this
@@ -56,7 +119,7 @@ function consumer (fftStream) {
 
 yes, this is awkward/weird
 
-seems intimately tied to the question of how multiple streams are, or are not, passed between producers/transforms/consumers
+seems intimately tied to the question of how multiple streams are, or are not, passed between origins/transforms/consumers
 
 ## consumers should definitely have handle() and taredown(). but, taredown() isn't **always** needed. can we simplify the api? pros/cons
 
@@ -81,9 +144,9 @@ now, this is all highly dependent on what happens wrt the above questions
 
 current answer:
 
-- consumer: return [,]...
+- origin: return [,]...
 
-- producer: returns stream
+- transform: takes stream, returns stream
 
 - consumer: returns function / object of functions
 
@@ -93,11 +156,13 @@ current answer:
 
 ### functions
 
-producer
+origin    (emphasizes its the 'source' of the streams
+formerly: producer 
 
 transform
 
 consumer
+endpoint
 
 ### meta-level
 
