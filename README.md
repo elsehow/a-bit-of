@@ -34,7 +34,7 @@ function transform (mindwaveStream) {
 }
 ```
 
-### consumer
+### endpoints 
 
 takes a stream 
 
@@ -46,8 +46,8 @@ returns {
 }
 
 ```javascript
-function consumer (fftStream) {
-  // consumer setup logic
+function  endpoints (fftStream) {
+  //  endpoints setup logic
   midiServer.start()
   // return handle(), and, optionally, a taredown () function
   return {
@@ -68,6 +68,6 @@ function consumer (fftStream) {
 
 ### swapTransform(transformFunction)
 
-### swapConsumer(consumerFunction)
+### swapEndpoints(endpointsFunction)
 
 

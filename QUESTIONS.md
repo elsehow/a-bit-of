@@ -7,9 +7,9 @@
 
 - are we describing a DAG? do we want that to be clear from the API?
 
-- consumers are being passed a stream....but not using them. this is weird, no? how can we deal with this
+- endpoints are being passed a stream....but not using them. this is weird, no? how can we deal with this
 
-- consumers should definitely have handle() and taredown(). but, taredown() isn't **always** needed. can we simplify the api? pros/cons?
+- endpoints should definitely have handle() and taredown(). but, taredown() isn't **always** needed. can we simplify the api? pros/cons?
 
 - whats the minimum we need to do to parse inputs?
 
@@ -57,7 +57,7 @@ function transform (stream1, stream2) {
 }
 
 // WEIRD: stream1 and stream2 still dont appear in the function body
-function consumer (stream1, stream2) {
+function endpoints (stream1, stream2) {
   return {
     setup: function () {
       // do setup stuff
@@ -87,7 +87,7 @@ but in js???
 dont worry.
 the idea is,
 allow multiple inputs/outputs across the aboard.
-coordinating multiple origins    (&consumers&transforms)... worry abt it later
+coordinating multiple origins    (&endpoints&transforms)... worry abt it later
 1st just 1 string
 
 
@@ -95,13 +95,13 @@ coordinating multiple origins    (&consumers&transforms)... worry abt it later
 
 ## are we describing a DAG? do we want that to be clear from the API?
 
-## consumers are being passed a stream....but not using them. this is weird, no? how can we deal with this
+## endpoints are being passed a stream....but not using them. this is weird, no? how can we deal with this
 
 case in point:
 
 ```javascript
-function consumer (fftStream) {
-  // consumer setup logic
+function endpoints (fftStream) {
+  // endpoints setup logic
   midiServer.start()
   // return handle(), and, optionally, a taredown () function
   return {
@@ -115,18 +115,18 @@ function consumer (fftStream) {
 }
 ```
 
-(see how `fftStream` isn't referenced in consumer() function body)
+(see how `fftStream` isn't referenced in endpoints() function body)
 
 yes, this is awkward/weird
 
-seems intimately tied to the question of how multiple streams are, or are not, passed between origins/transforms/consumers
+seems intimately tied to the question of how multiple streams are, or are not, passed between origins/transforms/endpoints
 
-## consumers should definitely have handle() and taredown(). but, taredown() isn't **always** needed. can we simplify the api? pros/cons
+## endpoints should definitely have handle() and taredown(). but, taredown() isn't **always** needed. can we simplify the api? pros/cons
 
 one approach:
 
 ```javascript
-function consumer (stream) {
+function endpoints (stream) {
   // setup
   return function (x) {
     // do stuff to each value
@@ -148,7 +148,7 @@ current answer:
 
 - transform: takes stream, returns stream
 
-- consumer: returns function / object of functions
+- endpoint: returns function / object of functions
 
 - swap...(): input is a function that passes the appropriate test, above
 
@@ -161,8 +161,8 @@ formerly: producer
 
 transform
 
-consumer
 endpoint
+formerly: outputs, consumers 
 
 ### meta-level
 
