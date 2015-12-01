@@ -67,6 +67,18 @@ function originFn  (fn) {
   
 }
 
+// validates transform component input return values
+function transformFn (returnValues) {
+  // put a fake Kefir stream through it
+  // check that the return value is a list
+  // and that the first value is a stream.
+  // (there may be other return values - thats fine)
+  return {
+    err: null
+  }
+
+}
+
 
 module.exports = {
 

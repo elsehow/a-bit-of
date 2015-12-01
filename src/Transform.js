@@ -5,34 +5,38 @@
 
 'use strict'
 
+var validators = require('./validators')
+
 // TODO
-// validate: takes a stream, returns an array of streams
+// validate: input fn a stream, returns an array of streams
 // attach () method is IDENTICAL
 // propogate () method is also probably IDENTICAL
 
-class Transform () {
+class Transform {
 
-  constructor (this.fn) {
+  constructor (fn) {
     this.inputs = null
     this.outputs = null
     this.downstream = null
+    this.upstream = null
     this.update(fn)
   }
 
   update (newFn) {
-    // validate the transform fn
-    var r = validators.transformFn(newFn)
-    // set this.error if need be
-    if (r.err) {
-      this.error = r.err
-      return
-    }
     // if no error, take the fn
     this.fn = newFn
     // if we have any inputs
-    if (this.inputs)
+    if (this.inputs) {
       // re run fn on our inputs, set our outputs
       this.outputs = this.fn.apply(null, this.inputs)
+      // validate the transform fn by looking at these outputs
+      // var r = validators.transformFn(this.outputs)
+      // // set this.error if need be
+      // if (r.err) {
+      //   this.error = r.err
+      //   return
+      // }
+    }
     // propogate changes to the downstream layer
     if (this.downstream) {
       // we assume each downstream has an `propogate` method
@@ -57,6 +61,9 @@ class Transform () {
 
   propogate (upstream) {
     this.inputs = upstream.outputs
+    this.update(this.fn)
   }
 
 }
+
+module.exports = Transform
