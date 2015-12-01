@@ -5,20 +5,17 @@
 
 'use strict'
 
+var Component = require('./Component')
 var validators = require('./validators')
 
 // TODO
 // validate: input fn a stream, returns an array of streams
-// attach () method is IDENTICAL
-// propogate () method is also probably IDENTICAL
+// inheritence works?
 
-class Transform {
+class Transform extends Component {
 
   constructor (fn) {
-    this.inputs = null
-    this.outputs = null
-    this.downstream = null
-    this.upstream = null
+    super(fn)
     this.update(fn)
   }
 
@@ -37,33 +34,15 @@ class Transform {
       //   return
       // }
     }
-    // propogate changes to the downstream layer
-    if (this.downstream) {
-      // we assume each downstream has an `propogate` method
-      // we call that method on `this`.
-      // our changes flow downstream.
-      this.downstream.propogate(this)
-    }
+    super.update()
   }
 
-  // attach a downstream node
-  attach (downstream) {
-    // validate input
-    var r = validators.downstream(downstream)
-    // throw any errors and exit
-    if (r.err) {
-      this.error = r.err
-      return
-    } 
-    this.downstream = downstream
-    downstream.propogate(this)
-  }
+  // methods inherited from Component:
 
-  propogate (upstream) {
-    this.inputs = upstream.outputs
-    this.update(this.fn)
-  }
+  // attach()
 
+  // propogate()
+ 
 }
 
 module.exports = Transform
