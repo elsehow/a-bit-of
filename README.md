@@ -17,7 +17,9 @@ function origin () {
   // port is an EventEmitter
   port = serialport('/dev/tty.MindWave')
   // we want to make a stream of its 'data' events
-  return [port, 'data']
+  return [
+    [port, 'data']
+  ]
 }
 ```
 
@@ -46,7 +48,7 @@ returns {
 }
 
 ```javascript
-function  endpoints (fftStream) {
+function endpoint (fftStream) {
   //  endpoints setup logic
   midiServer.start()
   // return handle(), and, optionally, a taredown () function
@@ -64,7 +66,7 @@ function  endpoints (fftStream) {
 
 ## api
 
-### swaporigin(originFunction)
+### swapOrigin(originFunction)
 
 ### swapTransform(transformFunction)
 

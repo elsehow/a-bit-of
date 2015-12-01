@@ -8,6 +8,7 @@
 // TODOS
 // multiple downstreams?
 // rethink the way error handling works
+// `detach` function?
 
 var kefir = require('kefir')
 var validators = require('./validators')
