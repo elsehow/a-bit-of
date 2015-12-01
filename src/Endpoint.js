@@ -12,7 +12,7 @@ var validators = require('./validators')
 // validate: input fn a stream, returns an array of streams
 // inheritence works?
 
-class Transform extends Component {
+class Endpoint extends Component {
 
   constructor (fn) {
     super(fn)
@@ -45,4 +45,4 @@ class Transform extends Component {
  
 }
 
-module.exports = Transform
+module.exports = Endpoint 

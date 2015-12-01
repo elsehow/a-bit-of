@@ -10,6 +10,7 @@
 // rethink the way error handling works
 // `detach` function?
 
+var Component = require('./Component')
 var kefir = require('kefir')
 var validators = require('./validators')
 
@@ -40,20 +41,20 @@ function updateOutputs (emittersList) {
   return
 }
 
-class Origin {
+class Origin extends Component {
 
   constructor (fn) {
+    super(fn)
     // initiate internal state variables
-    // this bit illustrates what state an Origin has
     this.fn = function () { } 
-    this.outputs = []
-    this.downstream = null
     this.removeListeners = function () { } 
+    // note that Origin has no propogate() method.
+    this.propogate = null
     this.update(fn)
   }
 
   // this takes in a new function
-  update (newFn, cb) {
+  update (newFn) {
     // validate input fn
     var r = validators.originFn(newFn)
     // throw any errors and exit
@@ -70,27 +71,13 @@ class Origin {
     // make new output streams
     this.outputs = updateOutputs(r.returnVal)
     // propogate changes to the downstream layer
-    if (this.downstream) {
-      // we assume each downstream has an `propogate` method
-      // we call that method on `this`.
-      // our changes flow downstream.
-      this.downstream.propogate(this)
-    }
+    super.update(newFn)
     // note that Origin has no propogate method.
   }
 
-  // attach a downstream node
-  attach (downstream) {
-    // validate input
-    var r = validators.downstream(downstream)
-    // throw any errors and exit
-    if (r.err) {
-      this.error = r.err
-      return
-    } 
-    this.downstream = downstream
-    downstream.propogate(this)
-  }
+  // inherited from Component:
+  // attach()
+  // note that Origin has no propogate() method.
 
 }
 
