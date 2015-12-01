@@ -11,17 +11,11 @@
 // `detach` function?
 
 var Component = require('./Component')
-var kefir = require('kefir')
-var validators = require('./validators')
+  , Kefir = require('kefir')
+//, validators = require('./validators')
 
-// origin return values are a list of:
-//
-//  [
-//    [ emitter, 'event']
-//    ...
-//  ]
-//
 // this returns a function that clears all event listeners
+// emittersList: [  [ emitter, 'event']  ...  ]
 function makeRemoveListenersFn (emittersList) {
   return function () {
     emittersList.forEach((v) => 
@@ -29,55 +23,50 @@ function makeRemoveListenersFn (emittersList) {
   }
 }
 
-// this function returns a list of kefir streams
-function makeStreams (emittersList) {
+function streamsFrom (emittersList) {
   return emittersList.map((v) => 
-    kefir.fromEvents(v[0], v[1]))
-}
-
-function updateOutputs (emittersList) {
-  if (emittersList)
-    return makeStreams(emittersList)
-  return
+    Kefir.fromEvents(v[0], v[1]))
 }
 
 class Origin extends Component {
 
   constructor (fn) {
-    super(fn)
-    // initiate internal state variables
-    this.fn = function () { } 
-    this.removeListeners = function () { } 
-    // note that Origin has no propogate() method.
-    this.propogate = null
+    super()
+    this._removeListeners = function () { } 
     this.update(fn)
   }
 
-  // this takes in a new function
-  update (newFn) {
-    // validate input fn
-    var r = validators.originFn(newFn)
-    // throw any errors and exit
-    if (r.err) {
-      this.error = r.err
-      return
+  // takes in a new function
+  // makes fresh kefir streams from that function's event emitters
+  // it re-executes the WHOLE origin setup function - including any state it holds.
+  // returns a list of kefir streams
+  // (see Origin API)
+  update (fn) {
+    if (fn) {
+      this._fn = fn
+       // remove all old event listeners
+      this._removeListeners()
+      // execute the new function
+      // remember this fn may contain state -
+      // serial, websocket connections, etc
+      // so we're very careful about when we run it
+      //
+      // origin return values are a list of:
+      //    [  [ emitter, 'event']  ...  ]
+      this._emittersList = this._fn()
+      // make a new `removeListeners` fn for the new emitters
+      this._removeListeners = makeRemoveListenersFn(this._emittersList)
+      // make new output streams from the new emitters
+      this._outputs = streamsFrom(this._emittersList)
+      // propogate changes to the downstream layer
+      super._sendChangesDownstream()
     }
-    // set the new function
-    this.fn = newFn
-    // remove all old event listeners
-    this.removeListeners()
-    // make a new `removeListeners` fn
-    this.removeListeners = makeRemoveListenersFn(r.returnVal)
-    // make new output streams
-    this.outputs = updateOutputs(r.returnVal)
-    // propogate changes to the downstream layer
-    super.update(newFn)
-    // note that Origin has no propogate method.
   }
 
-  // inherited from Component:
-  // attach()
-  // note that Origin has no propogate() method.
+  // refreshStreams () {
+  //   this._removeListeners()
+  //   return streamsFrom(this._emittersList)
+  // }
 
 }
 

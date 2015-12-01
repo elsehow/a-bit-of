@@ -1,5 +1,9 @@
 # a bit of
 
+work in progress.
+
+for something stable, but outdated, refer to [the old npm package](https://www.npmjs.com/package/a-bit-of)
+
 ## user inputs
 
 the user inputs 3 functions

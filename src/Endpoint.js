@@ -9,40 +9,69 @@ var Component = require('./Component')
 var validators = require('./validators')
 
 // TODO
-// validate: input fn a stream, returns an array of streams
-// inheritence works?
+// validate: fn returns an array of functions
+
+// applies fn, a method of each item in listOne, to each item in listTwo
+// this works even if the lists aren't equal length
+// or if the lists are falsey.
+function doOnEach (fn, listOne, listTwo) {
+  if (listOne && listTwo) {
+    listOne.forEach((e, i) => {
+      if (listTwo[i]) 
+        e[fn](listTwo[i])
+    })
+  }
+  return
+}
+
+// does stream.offValue(function)
+// for each stream & function
+function unplugEach (streams, functions) {
+  doOnEach('offValue', streams, functions)
+  return
+}
+
+// does stream.onValue(function)
+// for each stream & function
+function plugEach (streams, functions) {
+  doOnEach('onValue', streams, functions)
+  return
+}
 
 class Endpoint extends Component {
 
   constructor (fn) {
-    super(fn)
+    super()
+    // component has a special field, `handles`
+    // cf. "outputs" - an endpoint has no outputs.
+    this._handlers = null
     this.update(fn)
   }
 
   update (newFn) {
-    // if no error, take the fn
-    this.fn = newFn
-    // if we have any inputs
-    if (this.inputs) {
-      // re run fn on our inputs, set our outputs
-      this.outputs = this.fn.apply(null, this.inputs)
-      // validate the transform fn by looking at these outputs
-      // var r = validators.transformFn(this.outputs)
-      // // set this.error if need be
-      // if (r.err) {
-      //   this.error = r.err
-      //   return
-      // }
+
+    // update fn if necessary
+    if (newFn) {
+      this._fn = newFn
     }
-    super.update()
+
+    // get new handles
+    this._handlers = this._fn()
+    
+    // subscribe new inputs to handles
+    plugEach(this._inputs, this._handlers)
+
+    // note how we DON'T super._sendDownstream
+    // Endpoints never have downstreams.
   }
 
-  // methods inherited from Component:
+  _takeFromUpstream (upstreamOutputs) {
+    // unplug our current inputs from our old handles
+    unplugEach(this._inputs, this._handlers)
+    //
+    super._takeFromUpstream(upstreamOutputs)
+  }
 
-  // attach()
-
-  // propogate()
- 
 }
 
 module.exports = Endpoint 
