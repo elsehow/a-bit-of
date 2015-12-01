@@ -17,7 +17,15 @@ var timeouts = []
 
 function EndpointSpecs () {
 
-  test.skip('')
+  test.skip('Endpoint should be created with proper defaults')
+
+  test.skip('should be able to attach an origin')
+
+  test.skip('should be able to swap origin\'s function')
+
+  test.skip('should be able to output\'s function')
+
+  test.skip('shouldn\'t be able to attach anything to an endpoint')
 
 }
 

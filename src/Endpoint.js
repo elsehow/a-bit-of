@@ -16,33 +16,32 @@ class Endpoint extends Component {
 
   constructor (fn) {
     super(fn)
+    // note that endpoints have no attach method 
+    // (nothing can come after an endpoint)
+    this.attach= null
     this.update(fn)
   }
 
   update (newFn) {
-    // if no error, take the fn
-    this.fn = newFn
-    // if we have any inputs
+    // unsubscribe old inputs
     if (this.inputs) {
-      // re run fn on our inputs, set our outputs
-      this.outputs = this.fn.apply(null, this.inputs)
-      // validate the transform fn by looking at these outputs
-      // var r = validators.transformFn(this.outputs)
-      // // set this.error if need be
-      // if (r.err) {
-      //   this.error = r.err
-      //   return
-      // }
+      this.inputs.forEach((i) => 
+        i.offValue(this.handle))
     }
-    super.update()
+    // get new inputs
+    this.inputs = upstream.outputs
+    // subscribe new inputs
+    this.inputs.forEach((i) => 
+      i.onValue(this.handle))
+    // we don't need to call super.update()
+    // that method will propogate to downstreams
+    // but, Endpoints never have downstreams.
   }
 
   // methods inherited from Component:
 
-  // attach()
-
   // propogate()
- 
+
 }
 
 module.exports = Endpoint 
