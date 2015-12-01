@@ -2,13 +2,16 @@
 // origin specs
 require('./spec/OriginSpec')()
 require('./spec/TransformSpec')()
+require('./spec/EndpointSpec')()
 
 // todo
 // component spec
 // - attach
 // - propogate
 // - should be able to chain attach() statements
-
+// endpoint spec
+// validation thru the stack
+// e2e tests... (or whatever you'd call this)
 
 
 

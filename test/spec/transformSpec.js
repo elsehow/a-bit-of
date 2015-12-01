@@ -36,8 +36,8 @@ function makeOneOrigin () {
   })
 }
 
-// another simple origin  - a stream of 2s
-var twoOrigin = new Origin(function originFn () {
+
+function twoOriginFn () {
   // make an event emitter
   var twoEmitter = new EventEmitter()
   var t = setTimeout(() => twoEmitter.emit('number', 2), 300)
@@ -46,7 +46,7 @@ var twoOrigin = new Origin(function originFn () {
   return [
     [ twoEmitter, 'number' ]
   ]
-})
+}
 
 // 1 simple transform fn
 function timesTwoTransform (stream) {
@@ -124,6 +124,102 @@ function TransformSpecs () {
     t.notOk(o.error, 'should be no error after attaching to downstream')
     t.equal(o.downstream, myDownstream, 'downstream should have attached.')
   })
+
+  test('should be able to swap upstream functions', function (t) {
+    // we'll use this event emitter to spy on output from Origin
+    var spy = new EventEmitter()
+    // now we should see a 2 come out of our spy in the downstream
+    spy.on('value', (v) => {
+      t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
+      spy.removeAllListeners('value')
+      // once we do, 
+      // let's swap origin for a function that emits a stream of 2's
+      oneOrigin.update(twoOriginFn)
+      // now we should see a 4 come out of our spy in the downstream
+      // now we should see a 2 come out of our spy in the downstream
+      spy.on('value', (v) => {
+        t.equal(v, 4, 'we get the updated upstream\'s values downstream.')
+        spy.removeAllListeners('value')
+        t.end()
+      })
+    })
+    // make a downstream with our spy in it
+    class Downstream {
+      constructor () {
+        this.inputs = null
+        this.handle = (x) => {
+          spy.emit('value', x)
+        }
+      }
+      propogate (upstream) {
+        this.inputs = upstream.outputs
+        this.inputs.forEach((i) =>  {
+          i.onValue(this.handle) 
+        })
+      }
+    }
+    // attach the 1-emitting origin to our transform
+    var oneOrigin = makeOneOrigin()
+    // make a new transform
+    var o = new Transform(timesTwoTransform)
+    // make a downstream with our spy in it
+    var myDownstream = new Downstream()
+    // attach origin to transform, transform to downstream
+    oneOrigin.attach(o).attach(myDownstream)
+    t.notOk(o.error, 'should be no error after attaching to downstream')
+    t.equal(o.downstream, myDownstream, 'downstream should have attached.')
+  })
+
+  test('should be able to swap transform\'s functions', function (t) {
+    // we'll use this event emitter to spy on output from Origin
+    var spy = new EventEmitter()
+    // make a new transform
+    var o = new Transform(timesTwoTransform)
+    // now we should see a 2 come out of our spy in the downstream
+    spy.on('value', (v) => {
+      spy.removeAllListeners('value')
+      t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
+      // once we do, 
+      // let's swap our transform function for something else
+      o.update(timesThreeTransform)
+      // now we attach a new listener, expecting 3's from our updated function
+      spy.on('value', (v) => {
+        t.equal(v, 3, 'we get new values from the updated trasnform fn')
+        t.end()
+        spy.removeAllListeners('value')
+      })
+    })
+    // make a downstream with our spy in it
+    class Downstream {
+      constructor () {
+        this.inputs = null
+        this.handle = (x) => {
+          spy.emit('value', x)
+        }
+      }
+      propogate (upstream) {
+        // unsubscribe old inputs
+        if (this.inputs) {
+          this.inputs.forEach((i) => 
+            i.offValue(this.handle))
+        }
+        // get new inputs
+        this.inputs = upstream.outputs
+        // subscribe new inputs
+        this.inputs.forEach((i) => 
+          i.onValue(this.handle))
+      }
+    }
+    // attach the 1-emitting origin to our transform
+    var oneOrigin = makeOneOrigin()
+    // make a downstream with our spy in it
+    var myDownstream = new Downstream()
+    // attach origin to transform, transform to downstream
+    oneOrigin.attach(o).attach(myDownstream)
+    t.notOk(o.error, 'should be no error after attaching to downstream')
+    t.equal(o.downstream, myDownstream, 'downstream should have attached.')
+  })
+
 
 
   // tests for validation ----------------------------------------
