@@ -6,12 +6,11 @@
 'use strict'
 
 // TODOS
-// how to attach a downstream?
-// should validate downstreams that get attached
-// should validate input fn ?
 // multiple downstreams?
+// rethink the way error handling works
 
 var kefir = require('kefir')
+var validators = require('./validators')
 
 // origin return values are a list of:
 //
@@ -32,18 +31,6 @@ function makeRemoveListenersFn (emittersList) {
 function makeStreams (emittersList) {
   return emittersList.map((v) => 
     kefir.fromEvents(v[0], v[1]))
-}
-
-// todo - make a separate module for validators
-function validate (fn) {
-  // check that fn is a function
-  // check that it retuns a list
-  // check that the list has lists of length 2
-  // check that each list of length 2 is an emitter, event pair
-  return {
-    err: null,
-    returnVal: fn()
-  }
 }
 
 function updateOutputs (emittersList) {
@@ -67,10 +54,10 @@ class Origin {
   // this takes in a new function
   update (newFn, cb) {
     // validate input fn
-    var r = validate(newFn)
+    var r = validators.originFn(newFn)
     // throw any errors and exit
     if (r.err) {
-      throw r.err
+      this.error = r.err
       return
     }
     // set the new function
@@ -93,6 +80,13 @@ class Origin {
 
   // attach a downstream node
   attach (downstream) {
+    // validate input
+    var r = validators.downstream(downstream)
+    // throw any errors and exit
+    if (r.err) {
+      this.error = r.err
+      return
+    } 
     this.downstream = downstream
     downstream.propogate(this)
   }

@@ -3,14 +3,10 @@
 var test = require('tape')
   , abitof = require('../..')
   , EventEmitter = require('events').EventEmitter
+  , errorMessages = require('../../src/validators').errorMessages
 
 // our consumer function emits 'value' events through this emitter
 var outputEmitter = new EventEmitter()
-
-// TODOS 
-//..
-// test updating a function (with downstreams) + changes propogate?
-// test error catching with bad input fn
 
 //  tester fns --------------------------------------------------
 
@@ -152,7 +148,7 @@ test('updating Origin\'s function should propogate downstream', function (t) {
   o.attach(myDownstream)
   // let's try to see a 1 from our downstream
   spy.on('value', (v) => {
-    t.equal(v, 1, 'v should equal the first origin function\'s value')
+    t.equal(v, 1, 'downstream should get the first origin function\'s values')
     // now that that worked, let's remove this binding
     spy.removeAllListeners('value')
     // let's update the origin with a different function
@@ -160,7 +156,7 @@ test('updating Origin\'s function should propogate downstream', function (t) {
     o.update(originFn2)
     // now, we should see a value 2 from spy
     spy.on('value', (v) => {
-     t.equal(v, 2, 'v should equal the *new* origin function\'s value')
+     t.equal(v, 2, 'now downstream should get the *new* origin function\'s values')
      t.end()
    })
   })
@@ -168,4 +164,61 @@ test('updating Origin\'s function should propogate downstream', function (t) {
 
 
 
+// tests for validation ----------------------------------------
+test('Origin should validate its input functions', function (t) {
+  t.plan(4)
+  // the error we expect to see for all these tests
+  var expectedError = errorMessages.badOriginFn
+  // a function that sees if our origin function behaves as expected
+  function checkOriginError (origin, comment) {
+    t.equal(origin.error, expectedError, comment)
+  }
+  // make an origin function that emits a 1
+  function badOriginFn1 () {
+    var ee = new EventEmitter()
+    // bad format 
+    return [ ee, 'number' ]
+  }
+  checkOriginError(new abitof.Origin(badOriginFn1), 'rejects when fn doesnt return a list of lists')
+  function badOriginFn2 () {
+    var ee = 'not an event emitter'
+    // `ee` not an event emitter
+    return [ 
+      [ ee, 'number' ]
+    ]
+  }
+  checkOriginError(new abitof.Origin(badOriginFn2), 'rejects when fn doesn\'t return event emitters')
+  function badOriginFn3 () {
+    var ee = new EventEmitter()
+    return [ 
+      [ ee, 0 ] // second value is not a string
+    ]
+  }
+  checkOriginError(new abitof.Origin(badOriginFn3), 'rejects when fn doesn\'t return strings for event names')
+  var badOriginFn4 = 'not a function'
+  checkOriginError(new abitof.Origin(badOriginFn4), 'rejects when fn isnt a fn')
+})
 
+test('Origin should validate its input functions on update', function (t) {
+  t.plan(2)
+  var expectedError = errorMessages.badOriginFn
+  // start an origin with a legit 
+  var o = new abitof.Origin(originFn)
+  t.notOk(o.error, 'no error')
+  // now update it to be a bad origin fn
+  var badOriginFn = function () { return []   } 
+  o.update(badOriginFn)
+  t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
+})
+
+test('Origin should validate its input functions on update', function (t) {
+  t.plan(2)
+  var expectedError = errorMessages.badDownstream
+  // bad upstream
+  function upstream () { }
+  // make a new origin
+  var o = new abitof.Origin(originFn)
+  t.notOk(o.error, 'no error')
+  o.attach(upstream)
+  t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
+})
