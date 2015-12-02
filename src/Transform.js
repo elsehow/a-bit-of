@@ -15,26 +15,19 @@ var validators = require('./validators')
 class Transform extends Component {
 
   constructor (fn) {
-    super(fn)
+    super()
     this.update(fn)
   }
 
   update (newFn) {
-    // if no error, take the fn
-    this.fn = newFn
+    if (newFn)
+      this.fn = newFn
     // if we have any inputs
-    if (this.inputs) {
+    if (this.inputs) 
       // re run fn on our inputs, set our outputs
       this.outputs = this.fn.apply(null, this.inputs)
-      // validate the transform fn by looking at these outputs
-      // var r = validators.transformFn(this.outputs)
-      // // set this.error if need be
-      // if (r.err) {
-      //   this.error = r.err
-      //   return
-      // }
-    }
-    super.update()
+    // propogate these changes downstream
+    super._flowDownstream()
   }
 
   // methods inherited from Component:

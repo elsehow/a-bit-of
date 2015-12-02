@@ -44,9 +44,7 @@ function updateOutputs (emittersList) {
 class Origin extends Component {
 
   constructor (fn) {
-    super(fn)
-    // initiate internal state variables
-    this.fn = function () { } 
+    super()
     this.removeListeners = function () { } 
     // note that Origin has no propogate() method.
     this.propogate = null
@@ -55,24 +53,16 @@ class Origin extends Component {
 
   // this takes in a new function
   update (newFn) {
-    // validate input fn
-    var r = validators.originFn(newFn)
-    // throw any errors and exit
-    if (r.err) {
-      this.error = r.err
-      return
-    }
-    // set the new function
-    this.fn = newFn
+    if (newFn)
+      this.fn = newFn
     // remove all old event listeners
     this.removeListeners()
     // make a new `removeListeners` fn
-    this.removeListeners = makeRemoveListenersFn(r.returnVal)
+    this.removeListeners = makeRemoveListenersFn(this.fn())
     // make new output streams
-    this.outputs = updateOutputs(r.returnVal)
+    this.outputs = updateOutputs(this.fn())
     // propogate changes to the downstream layer
-    super.update(newFn)
-    // note that Origin has no propogate method.
+    super._flowDownstream()
   }
 
   // inherited from Component:

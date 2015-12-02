@@ -25,34 +25,14 @@ function originFn () {
 
 function OriginSpecs () {
 
-  test('origin should have an update function', function (t) {
-    t.plan(2)
+  test('Origin should be created with proper defaults', function (t) {
     var o = new abitof.Origin(originFn)
-    t.ok(o.update, 'update fn exists')
     t.equal(typeof(o.update), 'function', 'update is a fn')
-  })
-
-
-  test('downstream should be null', function (t) {
-    t.plan(1)
-    var o = new abitof.Origin(originFn)
     t.equal(o.downstream, null, 'downstream == null')
-  })
-
-
-  test('origin should have a removeListenersFn function', function (t) {
-    t.plan(2)
-    var o = new abitof.Origin(originFn)
-    t.ok(o.removeListeners, 'removeListeners exists')
     t.equal(typeof(o.removeListeners), 'function', 'removeListeners is a fn')
-  })
-
-  test('origin should have an output list', function (t) {
-    t.plan(3)
-    var o = new abitof.Origin(originFn)
-    t.ok(o.outputs, 'outputs exists')
     t.ok(o.outputs.length, 'outputs is a list')
     t.ok(o.outputs[0]._alive, 'outputs is a list of kefir streams')
+    t.end()
   })
 
   test('should be able to update with a new function (no downstreams attached)', function (t) {
@@ -164,10 +144,22 @@ function OriginSpecs () {
     })
   })
 
+  test('downstreams shouldn\'t be able to attach to an Origin', function (t) {
+    t.plan(1)
+    var expectedError = errorMessages.badDownstream
+    // bad upstream
+    function upstream () { }
+    // make a new origin
+    var o1 = new abitof.Origin(originFn)
+    var o2 = new abitof.Origin(originFn)
+    o1.attach(o2)
+    t.equal(o1.error, expectedError, 'should have an error after trying to attach an origin as a downstream.')
+  })
+
 
 
   // tests for validation ----------------------------------------
-  test('Origin should validate its input functions', function (t) {
+  test.skip('Origin should validate its input functions', function (t) {
     t.plan(4)
     // the error we expect to see for all these tests
     var expectedError = errorMessages.badOriginFn
@@ -201,7 +193,7 @@ function OriginSpecs () {
     checkOriginError(new abitof.Origin(badOriginFn4), 'rejects when fn isnt a fn')
   })
 
-  test('Origin should validate its input functions on update', function (t) {
+  test.skip('Origin should validate its input functions on update', function (t) {
     t.plan(2)
     var expectedError = errorMessages.badOriginFn
     // start an origin with a legit 
@@ -213,7 +205,7 @@ function OriginSpecs () {
     t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
   })
 
-  test('Origin should validate its input functions on update', function (t) {
+  test('Origin should refuse to take upstream', function (t) {
     t.plan(2)
     var expectedError = errorMessages.badDownstream
     // bad upstream
@@ -225,18 +217,6 @@ function OriginSpecs () {
     t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
   })
 
-
-  test('shouldn\'t be able to attach origin as a downstream', function (t) {
-    t.plan(1)
-    var expectedError = errorMessages.badDownstream
-    // bad upstream
-    function upstream () { }
-    // make a new origin
-    var o1 = new abitof.Origin(originFn)
-    var o2 = new abitof.Origin(originFn)
-    o1.attach(o2)
-    t.equal(o1.error, expectedError, 'should have an error after trying to attach an origin as a downstream.')
-  })
 
 }
 

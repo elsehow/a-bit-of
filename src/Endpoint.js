@@ -9,38 +9,67 @@ var Component = require('./Component')
 var validators = require('./validators')
 
 // TODO
-// validate: input fn a stream, returns an array of streams
-// inheritence works?
+// validate: fn returns an array of functions
+
+// applies fn, a method of each item in listOne, to each item in listTwo
+// this works even if the lists aren't equal length
+// or if the lists are falsey.
+function doOnEach (fn, listOne, listTwo) {
+  if (listOne && listTwo) {
+    listOne.forEach((e, i) => {
+      if (listTwo[i]) 
+        e[fn](listTwo[i])
+    })
+  }
+  return
+}
+
+// does stream.offValue(function)
+// for each stream & function
+function unplugEach (streams, functions) {
+  doOnEach('offValue', streams, functions)
+  return
+}
+
+// does stream.onValue(function)
+// for each stream & function
+function plugEach (streams, functions) {
+  doOnEach('onValue', streams, functions)
+  return
+}
 
 class Endpoint extends Component {
 
   constructor (fn) {
-    super(fn)
+    super()
     // note that endpoints have no attach method 
     // (nothing can come after an endpoint)
-    this.attach= null
+    this.attach = null
+    // component has a special field, `handles`
+    this.handles = null
     this.update(fn)
   }
 
   update (newFn) {
-    // unsubscribe old inputs
-    if (this.inputs) {
-      this.inputs.forEach((i) => 
-        i.offValue(this.handle))
+    // update fn if necessary
+    if (newFn) {
+      this.fn = newFn
+      // get new handles
+      this.handles = this.fn()
     }
-    // get new inputs
-    this.inputs = upstream.outputs
-    // subscribe new inputs
-    this.inputs.forEach((i) => 
-      i.onValue(this.handle))
+    // subscribe new inputs to handles
+    plugEach(this.inputs, this.handles)
+
     // we don't need to call super.update()
-    // that method will propogate to downstreams
-    // but, Endpoints never have downstreams.
+    // that method propogates to downstreams,
+    // but Endpoints never have downstreams.
   }
 
   // methods inherited from Component:
-
-  // propogate()
+  propogate (upstream) {
+    unplugEach(this.inputs, this.handles)
+    super.propogate(upstream)
+  }
 
 }
 

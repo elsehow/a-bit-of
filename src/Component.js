@@ -4,14 +4,18 @@ var validators = require('./validators')
 
 class Component {
 
-  constructor (fn) {
+  constructor () {
+    // if (fn)
+    //   this.fn = fn
+    // else
+    //   this.fn = function () { return null } 
     this.inputs = null
     this.outputs = null
     this.downstream = null
     this.upstream = null
   }
 
-  update (newFn) {
+  _flowDownstream () {
     // propogate changes to the downstream layer
     if (this.downstream) {
       // we assume each downstream has an `propogate` method
@@ -31,7 +35,8 @@ class Component {
       return
     } 
     this.downstream = downstream
-    this.downstream.propogate(this)
+    this._flowDownstream()
+    // we return downstream so we can chain attach() statements
     return this.downstream
   }
 

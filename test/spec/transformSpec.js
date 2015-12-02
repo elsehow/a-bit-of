@@ -6,6 +6,7 @@ var test = require('tape')
   , errorMessages = require('../../src/validators').errorMessages
   , Origin = require('../..').Origin
   , Transform = require('../..').Transform
+  , Endpoint = require('../..').Endpoint
 
 // our consumer function emits 'value' events through this emitter
 var outputEmitter = new EventEmitter()
@@ -63,71 +64,61 @@ function timesThreeTransform (stream) {
 }
 
 
+// returns { endpoint, spy }
+function makeSpyEndpoint () {
+  // we use this to see what's going on inside the endpoint
+  var spy = new EventEmitter()
+  // an endpoint function. we're keeping it simple
+  function endpointFn () {
+    return [
+      function (x) {
+        spy.emit('value', x)
+      }
+    ]
+  }
+  // returns { endpoint, spy }
+  return {
+    endpoint: new Endpoint(endpointFn),
+    spy: spy
+  }
+}
+
 // tests --------------------------------------------------------
 
 function TransformSpecs () {
 
-  test('Transform should have an update function', function (t) {
-    t.plan(2)
+  test('Transform should initialize with proper defaults', function (t) {
     var o = new abitof.Transform(timesTwoTransform)
-    t.ok(o.update, 'update fn exists')
     t.equal(typeof(o.update), 'function', 'update is a fn')
-  })
-
-
-  test('downstream should be null', function (t) {
-    t.plan(1)
-    var o = new abitof.Transform(timesTwoTransform)
     t.equal(o.downstream, null, 'downstream == null')
-  })
-
-
-  test('upstream should be null', function (t) {
-    t.plan(1)
-    var o = new abitof.Transform(timesTwoTransform)
     t.equal(o.upstream, null, 'upstream == null')
+    t.end()
   })
-
 
   test('should be able to attach a downstream and an upstream', function (t) {
+    var r = makeSpyEndpoint()
     // we'll use this event emitter to spy on output from Origin
-    var spy = new EventEmitter()
+    var spy = r.spy
     // now we should see a 2 come out of our spy in the downstream
     spy.on('value', (v) => {
       t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
       spy.removeAllListeners('value')
       t.end()
     })
-    // make a downstream with our spy in it
-    class Downstream {
-      constructor () {
-        this.inputs = null
-        this.handle = (x) => {
-          spy.emit('value', x)
-        }
-      }
-      propogate (upstream) {
-        this.inputs = upstream.outputs
-        this.inputs.forEach((i) =>  {
-          i.onValue(this.handle) 
-        })
-      }
-    }
     // attach the 1-emitting origin to our transform
     var oneOrigin = makeOneOrigin()
     // make a new transform
     var o = new Transform(timesTwoTransform)
-    // make a downstream with our spy in it
-    var myDownstream = new Downstream()
     // attach origin to transform, transform to downstream
-    oneOrigin.attach(o).attach(myDownstream)
+    oneOrigin.attach(o).attach(r.endpoint)
     t.notOk(o.error, 'should be no error after attaching to downstream')
-    t.equal(o.downstream, myDownstream, 'downstream should have attached.')
+    t.equal(o.downstream, r.endpoint, 'downstream should have attached.')
   })
 
   test('should be able to swap upstream functions', function (t) {
+    var r = makeSpyEndpoint()
     // we'll use this event emitter to spy on output from Origin
-    var spy = new EventEmitter()
+    var spy = r.spy
     // now we should see a 2 come out of our spy in the downstream
     spy.on('value', (v) => {
       t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
@@ -143,81 +134,42 @@ function TransformSpecs () {
         t.end()
       })
     })
-    // make a downstream with our spy in it
-    class Downstream {
-      constructor () {
-        this.inputs = null
-        this.handle = (x) => {
-          spy.emit('value', x)
-        }
-      }
-      propogate (upstream) {
-        this.inputs = upstream.outputs
-        this.inputs.forEach((i) =>  {
-          i.onValue(this.handle) 
-        })
-      }
-    }
     // attach the 1-emitting origin to our transform
     var oneOrigin = makeOneOrigin()
     // make a new transform
     var o = new Transform(timesTwoTransform)
-    // make a downstream with our spy in it
-    var myDownstream = new Downstream()
     // attach origin to transform, transform to downstream
-    oneOrigin.attach(o).attach(myDownstream)
+    oneOrigin.attach(o).attach(r.endpoint)
     t.notOk(o.error, 'should be no error after attaching to downstream')
-    t.equal(o.downstream, myDownstream, 'downstream should have attached.')
+    t.equal(o.downstream, r.endpoint, 'downstream should have attached.')
   })
 
   test('should be able to swap transform\'s functions', function (t) {
+    var r = makeSpyEndpoint()
     // we'll use this event emitter to spy on output from Origin
-    var spy = new EventEmitter()
+    var spy = r.spy
     // make a new transform
     var o = new Transform(timesTwoTransform)
     // now we should see a 2 come out of our spy in the downstream
     spy.on('value', (v) => {
       spy.removeAllListeners('value')
-      t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
+      t.equal(v, 2, 'we get values from origin->transform->endpoint.')
       // once we do, 
       // let's swap our transform function for something else
       o.update(timesThreeTransform)
       // now we attach a new listener, expecting 3's from our updated function
       spy.on('value', (v) => {
-        t.equal(v, 3, 'we get new values from the updated trasnform fn')
+        t.equal(v, 3, 'see new values at endpoint after updating transform.')
         t.end()
         spy.removeAllListeners('value')
       })
     })
-    // make a downstream with our spy in it
-    class Downstream {
-      constructor () {
-        this.inputs = null
-        this.handle = (x) => {
-          spy.emit('value', x)
-        }
-      }
-      propogate (upstream) {
-        // unsubscribe old inputs
-        if (this.inputs) {
-          this.inputs.forEach((i) => 
-            i.offValue(this.handle))
-        }
-        // get new inputs
-        this.inputs = upstream.outputs
-        // subscribe new inputs
-        this.inputs.forEach((i) => 
-          i.onValue(this.handle))
-      }
-    }
     // attach the 1-emitting origin to our transform
     var oneOrigin = makeOneOrigin()
-    // make a downstream with our spy in it
-    var myDownstream = new Downstream()
     // attach origin to transform, transform to downstream
-    oneOrigin.attach(o).attach(myDownstream)
-    t.notOk(o.error, 'should be no error after attaching to downstream')
-    t.equal(o.downstream, myDownstream, 'downstream should have attached.')
+    oneOrigin.attach(o).attach(r.endpoint)
+    t.notOk(o.error, 'no error attaching downstream')
+    t.equal(o.downstream, r.endpoint, 'downstream should have attached.')
   })
 
 
