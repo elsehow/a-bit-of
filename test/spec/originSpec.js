@@ -4,19 +4,20 @@ var test = require('tape')
   , Origin = require('../..').Origin
   , Component = require('../../src/Component')
   , utils = require('../util/utils.js')
-  , timeouts = []
 
 // tests --------------------------------------------------------
 
 function OriginSpecs () {
 
-  test('ORIGIN SPEC - initiates properly ', function (t) {
+  test('%%%% ORIGIN SPEC %%%%', (t) => t.end())
+
+  test('initiates properly ', function (t) {
     // with no function given
     var o = new Origin()
     t.equal(typeof(o._removeListeners), 'function', 'removeListeners is a fn')
     t.equal(o._outputs, null, '_outputs is null')
     // console.log('now trying an origin with a proper input function')
-    var o = new Origin(utils.makeTwoOriginFn(timeouts))
+    var o = new Origin(utils.makeTwoOriginFn())
     t.equal(typeof(o._removeListeners), 'function', 'removeListeners is a fn')
     t.ok(o._outputs.length, '_outputs is a list')
     t.ok(o._outputs[0]._alive, '_outputs is a list of kefir streams')
@@ -25,7 +26,7 @@ function OriginSpecs () {
 
   test('origin.update(newFn)', function (t) {
     // make an origin with our old function
-    var o = utils.makeOneOrigin(timeouts)
+    var o = utils.makeOneOrigin()
     var outRef = o._outputs
     // we attach a component to it
     var c = new Component()
@@ -34,7 +35,7 @@ function OriginSpecs () {
     // verify the stream gives us 1s
     utils.verifyStream(t, c._inputs[0], 1, 'attached component can get values from origin streams', () => {
       // now we update origin's function
-      var oF2 = utils.makeTwoOriginFn(timeouts)
+      var oF2 = utils.makeTwoOriginFn()
       o.update(oF2)
       var newOutRef = o._outputs
       t.notEqual(newOutRef, outRef, 'origin updated its _output')
@@ -93,8 +94,6 @@ function OriginSpecs () {
     o.update(badOriginFn)
     t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
   })
-
-  utils.cleanup(test, timeouts)
 
 }
 

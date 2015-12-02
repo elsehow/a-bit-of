@@ -4,10 +4,10 @@ var EventEmitter = require('events').EventEmitter
   , Transform = require('../..').Transform
   , Endpoint = require('../..').Endpoint
 
-function cleanup (test, timeouts) {
+function cleanup (test) {
   test('cleaning up', (t) => {
-    timeouts.forEach((t) => clearInterval(t))
     t.end()
+    process.exit(0)
   })
 }
 
@@ -21,21 +21,19 @@ function verifyStream (t, stream, val, comment, cb) {
   stream.onValue(checkVal)
 }
 
-function oneStream (timeouts) {
+function oneStream () {
   var oneEmitter = new EventEmitter()
   var t = setInterval(() => oneEmitter.emit('number', 1), 1)
-  timeouts.push(t)
   return Kefir.fromEvents(oneEmitter, 'number')
 }
 
 // a simple origin  - a stream of 1s
 
-function makeOneOrigin (timeouts) {
+function makeOneOrigin () {
   return new Origin(function () {
     // make an event emitter
     var oneEmitter = new EventEmitter()
     var t = setInterval(() => oneEmitter.emit('number', 1), 1)
-    timeouts.push(t)
     // return value conforms to the producer API
     return [
       [ oneEmitter, 'number' ]
@@ -44,13 +42,12 @@ function makeOneOrigin (timeouts) {
 }
 
 // returns an origin function
-function makeTwoOriginFn (timeouts) {
+function makeTwoOriginFn () {
   // returns a function with an emitters of 2's
   return () => {
     // make an event emitter
     var twoEmitter = new EventEmitter()
     var t = setInterval(() => twoEmitter.emit('number', 2), 1)
-    timeouts.push(t)
     // return value conforms to the producer API
     return [
       [ twoEmitter, 'number' ]

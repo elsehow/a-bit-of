@@ -62,12 +62,6 @@ class Origin extends Component {
       super._sendChangesDownstream()
     }
   }
-
-  // refreshStreams () {
-  //   this._removeListeners()
-  //   return streamsFrom(this._emittersList)
-  // }
-
 }
 
 module.exports = Origin

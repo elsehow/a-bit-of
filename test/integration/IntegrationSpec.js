@@ -7,7 +7,6 @@
 // integration spec
 var test = require('tape')
   , utils = require('../util/utils.js')
-  , timeouts = []
   , EventEmitter = require('events').EventEmitter
 
 // if emitter has an event 'value'
@@ -23,10 +22,12 @@ function testEmitter (t, emitter, expected, note, cb) {
 
 function IntegrationSpecs () {
 
+  test('%%%% INTEGRATION SPEC %%%%', (t) => t.end())
+
   test('Basic hierarchy', function (t) {
     // make a hierarchy:
     // origin -> transform -> endpoint
-    var or = utils.makeOneOrigin(timeouts)
+    var or = utils.makeOneOrigin()
     var tr = utils.makeTimesTwoTransform()
     var r = utils.makeSpyEndpoint()
     or.attach(tr).attach(r.endpoint)
@@ -36,7 +37,7 @@ function IntegrationSpecs () {
     }
     // swap the origin function of our hierarchy 
     function swapOriginFn (cb) {
-      or.update(utils.makeTwoOriginFn(timeouts))
+      or.update(utils.makeTwoOriginFn())
       testEmitter(t, r.spy, 2*2, 'updating origin, right values come through endpoint', cb)
     }
     // swap the transform function of our hierarchy
@@ -60,22 +61,18 @@ function IntegrationSpecs () {
   })
 
 
-// basic 4-hierarchy
-// origin -> transform -> transform -> endpoint
-// single stream passing from each layer
+  // basic 4-hierarchy
+  // origin -> transform -> transform -> endpoint
+  // single stream passing from each layer
 
 
-// multi-stream 3-hierarchy
-// origin -> transform -> endpoint
-// 3 streams -> 2 streams -> 3 streams
+  // multi-stream 3-hierarchy
+  // origin -> transform -> endpoint
+  // 3 streams -> 2 streams -> 3 streams
 
 
-// cleanup tests -----------------------------------------------
-test('cleanup', function (t) {
-  t.plan(1)
-  timeouts.forEach((t) => clearTimeout(t))
-  t.ok(true, 'cleaned up')
-})
+  // cleanup and exit tests
+  utils.cleanup(test)
 
 }
 

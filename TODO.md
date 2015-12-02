@@ -1,7 +1,6 @@
 
 next steps
 - rent check
-- finish off endpoint spec 
 - integration test with multiple streams
 
 try it in a contrived electron app
@@ -12,10 +11,11 @@ try it in a contrived electron app
 
 
 
-rethink erroring and validation
+erroring and validation
 - should validate *all* user input 
 - but how do errors occur, mechanically?
 - what happens when components have no function?
+- finish off endpoint spec 
 
 more complex graphs?
 

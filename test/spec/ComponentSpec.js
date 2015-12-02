@@ -5,11 +5,12 @@ var test = require('tape')
   , errorMessages = require('../../src/validators').errorMessages
   , Component = require('../../src/Component')
   , utils = require('../util/utils.js')
-  , timeouts = []
 
 function ComponentSpecs () {
 
-  test('COMPONENT SPEC - proper defaults', (t) => {
+  test('%%%% COMPONENT SPEC %%%%', (t) => t.end())
+
+  test('proper defaults', (t) => {
     var c = new Component()
     t.equal(c._inputs, null, '_inputs is null')
     t.equal(c._outputs, null, '_outputs is null')
