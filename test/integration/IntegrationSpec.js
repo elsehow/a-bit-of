@@ -61,14 +61,42 @@ function IntegrationSpecs () {
   })
 
 
+  // multi-stream 3-hierarchy
+  // origin -> transform -> endpoint
+  // 2 streams -> 3 streams -> 3 streams
+  // 2 streams split into 3 independent endpoints
+  test('multi-stream basic hierarchy', function (t) {
+    // 2 stream origin
+    var or = utils.twoStreamOrigin()
+    // 3 stream transform
+    // last 2 streams are identical 
+    // - but they will go to different endpoints
+    var tr = utils.threeStreamTransform()
+    // `r` has spy1,spy2,spy3 - three emitters with 'value' events
+    var r = utils.makeThreeSpyEndpoint()
+    // attach em all together
+    or.attach(tr).attach(r.endpoint)
+    // test em
+    function doTest (cb) {
+      testEmitter(t, r.spy1, 1*1, 'first endpoint ok', () => {
+        testEmitter(t, r.spy2, 2*2, 'second endpoint ok', () => {
+          testEmitter(t, r.spy3, 2*3, 'third endpoint ok', cb)
+        })
+      })
+    }
+    doTest(() => t.end())
+    // TODO -   swap origin fn
+    // TODO -   swap trasnform fn
+    // TODO -   swap endpoint fn
+    // BREAK OUT INTO FUNCTIONS
+    // EASIER TO SWAP THAT WAY
+  })
+
+
   // basic 4-hierarchy
   // origin -> transform -> transform -> endpoint
   // single stream passing from each layer
 
-
-  // multi-stream 3-hierarchy
-  // origin -> transform -> endpoint
-  // 3 streams -> 2 streams -> 3 streams
 
 
   // cleanup and exit tests

@@ -17,7 +17,7 @@ function OriginSpecs () {
     t.equal(typeof(o._removeListeners), 'function', 'removeListeners is a fn')
     t.equal(o._outputs, null, '_outputs is null')
     // console.log('now trying an origin with a proper input function')
-    var o = new Origin(utils.makeTwoOriginFn())
+    var o = new Origin().update(utils.makeTwoOriginFn())
     t.equal(typeof(o._removeListeners), 'function', 'removeListeners is a fn')
     t.ok(o._outputs.length, '_outputs is a list')
     t.ok(o._outputs[0]._alive, '_outputs is a list of kefir streams')
@@ -31,7 +31,7 @@ function OriginSpecs () {
     // we attach a component to it
     var c = new Component()
     o.attach(c)
-    t.equal(o._outputs, c._inputs, 'verify that streams propogate from origin to attache component')
+    t.equal(c._inputs, o._outputs, 'verify that origin outputs propogate to attached component inputs')
     // verify the stream gives us 1s
     utils.verifyStream(t, c._inputs[0], 1, 'attached component can get values from origin streams', () => {
       // now we update origin's function
@@ -47,53 +47,56 @@ function OriginSpecs () {
 
   // TODO tests for validation ----------------------------------------
 
-  test.skip('downstreams shouldn\'t be able to attach to an Origin')
-
-  test.skip('Origin should validate its input functions', function (t) {
+  test('Origin should validate its input functions', function (t) {
     t.plan(4)
-    // the error we expect to see for all these tests
-    var expectedError = errorMessages.badOriginFn
-    // a function that sees if our origin function behaves as expected
-    function checkOriginError (origin, comment) {
-      t.equal(origin.error, expectedError, comment)
+    var EventEmitter = require('events').EventEmitter
+    // a higher-order function for making error handlers
+    function checkError (msg) {
+      return (err) => {
+        console.log('an error i was expecting to see', err)
+        t.ok(err, msg)
+      }
     }
-    // make an origin function that emits a 1
+    // 1
     function badOriginFn1 () {
       var ee = new EventEmitter()
       // bad format 
       return [ ee, 'number' ]
     }
-    checkOriginError(new Origin(badOriginFn1), 'rejects when fn doesnt return a list of lists')
-    function badOriginFn2 () {
+    new Origin(checkError('rejects when fn doesnt return a list of lists'))
+      .update(badOriginFn1), 
+    // 2
+    new Origin(checkError('rejects when fn doesn\'t return event emitters'))
+      .update(() => {
       var ee = 'not an event emitter'
       // `ee` not an event emitter
       return [ 
         [ ee, 'number' ]
       ]
-    }
-    checkOriginError(new Origin(badOriginFn2), 'rejects when fn doesn\'t return event emitters')
+    })
     function badOriginFn3 () {
       var ee = new EventEmitter()
       return [ 
         [ ee, 0 ] // second value is not a string
       ]
     }
-    checkOriginError(new Origin(badOriginFn3), 'rejects when fn doesn\'t return strings for event names')
-    var badOriginFn4 = 'not a function'
-    checkOriginError(new Origin(badOriginFn4), 'rejects when fn isnt a fn')
+    // 3
+    new Origin(checkError('rejects when fn doesn\'t return strings for event names'))
+      .update(badOriginFn3)
+    // 4
+    new Origin(checkError('rejects when fn isnt a fn'))
+      .update('not a fn')
   })
 
-  test.skip('Origin should validate its input functions on update', function (t) {
-    t.plan(2)
-    var expectedError = errorMessages.badOriginFn
-    // start an origin with a legit 
-    var o = new Origin(originFn)
-    t.notOk(o.error, 'no error')
-    // now update it to be a bad origin fn
-    var badOriginFn = function () { return []   } 
-    o.update(badOriginFn)
-    t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
+  test('Components shouldn\'t be able to attach to Origins - origins have no upstreams.', (t) => {
+    t.plan(1)
+    var c = new Component((err) => 
+      t.ok(err, 'parent component throws error when i try to attach to origin'))
+    var o = new Origin((err) => 
+      t.notOk(err, 'origin should stay quiet when someone tries to attach to it.'))
+    c.attach(o)
   })
+
 
 }
 

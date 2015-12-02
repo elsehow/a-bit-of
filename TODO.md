@@ -1,23 +1,29 @@
 
 next steps
-- rent check
-- integration test with multiple streams
+------------
+- proper validation
+- redo 
+.
+- taredowns
+- codify api simple readme
+- publish!
+- integrate erroring into electron-playing
+- show multi-stream hotswapping is ok
 
-try it in a contrived electron app
-- see if the outputs updating really works well
+weird thing
+------------
+i call new Origin(fn) and origin.update(fn)
+to do basically the same thing......
+in fact i sub-call update() everwhere
+i should make a new one () like this and then just
+updateFn(f) whenever i have fn!!!!!!!!!!!!!!!
 
 
-
-
-
-
-erroring and validation
-- should validate *all* user input 
-- but how do errors occur, mechanically?
-- what happens when components have no function?
-- finish off endpoint spec 
-
-more complex graphs?
+future play
+------------
+- deeper levels of heirarchy
+- more complex graphs
+- should ALL the return values be streams? (functions, etc..?)
 
 
 

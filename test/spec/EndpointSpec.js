@@ -23,17 +23,54 @@ function EndpointSpecs () {
     t.end()
   })
 
-  test.skip('_takeFromUpstream swaps handler input streams, with no interruption to their activity')
+  test('shouldn\'t be able to attach anything to an endpoint', (t) => {
+    t.plan(1)
+    var upstreamErr = (err) => {
+      console.log('error i expected to see', err)
+      t.ok(err, 'upstream (endpoint) should emit an error.')
+    }
+    var downstreamErr = (err) => {
+      t.notOk(err, 'should be no error from downstream')
+    }
+    var e = new Endpoint(upstreamErr)
+    var c = new Component(downstreamErr)
+    e.attach(c)
+  })
 
-  test.skip('shouldn\'t be able to attach anything to an endpoint')
-
-  test.skip('should trigger taredown() methods in functions passed in, if they exist')
+  test.skip('should trigger its function\'s taredown() methods, if they exist')
+  // should  trigger taredown if a new fn is passed in
+  // should NOT trigger taredown if a new fn is **not** passed in (e.g. on propogate downstream)
 
   // tests for validation ----------------------------------------
 
-  test.skip('validates user input fn')
-
-  test.skip('won\'t attach downstream')
+  test('validates user input fn', (t) => {
+    t.plan(3)
+    // a higher-order function for making error handlers
+    function checkError (msg) {
+      return (err) => {
+        console.log('an error i was expecting to see', err)
+        t.ok(err, msg)
+      }
+    }
+    var e = new Endpoint(checkError('errors correctly'))
+    // bad fn 1
+    e.update('not a function')
+    // bad fn 2
+    e.update(function () {
+      return (x) => 'not a list'
+    })
+    // bad fn 3
+    e.update(function () {
+      return [
+        'not a list of functions'
+      ]
+    })
+    e.update(function () {
+      return [
+        () => 'this one should be fine - no error expected'
+      ]
+    })
+  })
 
   // cleanup tests -----------------------------------------------
 

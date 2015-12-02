@@ -1,92 +1,107 @@
+'use strict'
 var EventEmitter = require('events').EventEmitter
-
-var errorMessages = {
-  badOriginFn: 'That origin function :T',
-  badDownstream: 'That downstream :T',
-}
-
-
-// validates a downstream that's been passed in
-function downstream (ds) {
-  var err = {
-    err: errorMessages.badDownstream,
-    downstream: null
-  }
-  // downstream should have a propogate function
-  if (!ds.propogate)
-    return err
-  if (!(typeof(ds.propogate) === 'function'))
-    return err
-  return {
-    err: null,
-    downstream: ds
-  }
-}
-
-// validates origin component input functions
-function originFn  (fn) {
-  var err = {
-    err: errorMessages.badOriginFn,
-    returnVal: null
-  }
+// criteria is a list like
+//
+//    [
+//      [ proposition, 'err if proposition is false']
+//      [ rv[0].length === true, 'items in fn's return value should be lists' ]
+//      ...
+//    ]
+//
+// validate returns an object
+//
+//    {
+//      error: err,
+//      returnVal: rv,
+//    }
+//
+// where `returnVal` is fn()
+//
+function validate (fn, criteria, args) {
+  var err;
   // check that fn is a function
-  var t1 = typeof(fn) === 'function'
-  if (!t1) 
-    return err
-  // get return val from fn
-  var rv = fn()
-  if (!rv) 
-    return err
-  // check that it retuns a list
-  var t2 = rv.length > 0
-  if (!t2)
-    return err
-  // check that each item in the rv
-  // looks like
-  //
-  //   [emitter, 'event']
-  //
-  var t3 = rv.reduce((acc, r) => {
-    if (acc && 
-      r.length && 
-      EventEmitter.prototype.isPrototypeOf(r[0]) && 
-      (typeof(r[1]) === 'string')) {
+  try {
+    if (args)
+      var rv = fn.apply(null, args)
+    else
+      var rv = fn()
+  } catch (e) {
+    if (typeof(fn) !== 'function')
+      err = 'Error: abitof.Component.update() takes a function. You passed ' + typeof(fn)
+    else
+      err = e
+    return {
+      error: err,
+      returnVal: null,
+    }
+  }
+  // reduce over criteria
+  var ok = criteria(rv).reduce((acc, cur, i) => {
+    if (acc) {
+      if (cur[0])
         return true
+      else {
+        if (!err) {
+          err = cur[1]
+        }
+        return false
+      }
     }
     return false
   }, true)
-
-  if (!t3)
-    return err
-
-  // passed all the tests
   return {
-    err: null,
-    returnVal: fn()
+    error: err,
+    returnVal: rv,
   }
-  
 }
 
-// validates transform component input return values
-function transformFn (returnValues) {
-  // put a fake Kefir stream through it
-  // check that the return value is a list
-  // and that the first value is a stream.
-  // (there may be other return values - thats fine)
-  return {
-    err: null
+function originFn  (fn) {
+  var errorMsg = 'Origin\'s function should return a list of \n [ [ EventEmitter, \'event\'] ... ]. Note how that\'s a list of lists.' 
+  var originCriteria = function (rv) {
+    return [
+      [ rv, errorMsg ],
+      [ rv.length, errorMsg ],
+      [ rv.length > 0, errorMsg ],
+      [ rv[0].length > 1, errorMsg ],
+      [ EventEmitter.prototype.isPrototypeOf(rv[0][0]), errorMsg ],
+      [ typeof(rv[0][1]) === 'string', errorMsg ],
+    ]
   }
-
+  return validate(fn, originCriteria)
 }
 
+function transformFn (fn, args) {
+  var trasnformCriteria = function (rv) {
+    var errorMsg = 'Transform\'s function should return a list of \n [ stream1, stream2, ... ].'
+    return [
+      [ rv, errorMsg ],
+      // rv should be a list
+      [ rv.length, errorMsg ],
+      [ rv.length > 0, errorMsg ],
+      // elements of rv should be a stream
+      [ rv[0]._dispatcher , errorMsg ],
+    ]
+  }
+  return validate(fn, trasnformCriteria, args)
+}
+
+function endpointFn (fn, errorCb) {
+  var trasnformCriteria = function (rv) {
+    var errorMsg = 'Endpoint\'s function should return a list of functions.'
+    return [
+      [ rv, errorMsg ],
+      // rv should be a list
+      [ rv.length, errorMsg ],
+      [ rv.length > 0, errorMsg ],
+      // items in that list should be functions
+      [ typeof(rv[0]) === 'function' , errorMsg ],
+    ]
+  }
+  return validate(fn, trasnformCriteria)
+}
 
 module.exports = {
-
-  // validator functions return an object
-  //    { err, returnVal }
-
   originFn: originFn,
-  downstream: downstream,
-  errorMessages: errorMessages
-
+  transformFn: transformFn,
+  endpointFn: endpointFn,
 }

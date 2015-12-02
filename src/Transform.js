@@ -6,24 +6,32 @@
 'use strict'
 
 var Component = require('./Component')
-var validators = require('./validators')
+  , validate = require('./validators.js').transformFn
 
 class Transform extends Component {
 
-  constructor (fn) {
-    super()
-    this.update(fn)
+  constructor (errorCb) {
+    super(errorCb)
   }
 
   update (newFn) {
+    // just set the new fn if we have one
+    // we can't validate it until we get inputs
     if (newFn)
       this._fn = newFn
-    // if we have any inputs
+    // re run fn on our inputs
     if (this._inputs) {
-      // re run fn on our inputs, set our outputs
-      this._outputs = this._fn.apply(null, this._inputs)
+      var val = validate(this._fn, this._inputs)
+      if (val.error) {
+        this._errorCb(val.error)
+        return
+      }
+      // set our outputs
+      this._outputs = val.returnVal
     }
-    super._sendChangesDownstream()
+    // propogate changes downstram
+    super._sendChangesDownstream(this._outputs)
+    return this
   }
 
 }

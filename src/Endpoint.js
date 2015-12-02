@@ -5,8 +5,8 @@
 
 'use strict'
 
-var Component = require('./Component')
-var validators = require('./validators')
+var Component   = require('./Component')
+  , validate    = require('./validators.js').endpointFn
 
 // TODO
 // validate: fn returns an array of functions
@@ -40,29 +40,35 @@ function plugEach (streams, functions) {
 
 class Endpoint extends Component {
 
-  constructor (fn) {
-    super()
+  constructor (errorCb) {
+    super(errorCb)
     // component has a special field, `handles`
     // cf. "outputs" - an endpoint has no outputs.
     this._handlers = null
-    this.update(fn)
+    delete this.outputs
   }
 
   update (newFn) {
 
-    // update fn if necessary
+    // if there's a new fn, validate + update
     if (newFn) {
+      var val = validate(newFn)
+      if (val.error) {
+        this._errorCb(val.error)
+        return
+      }
       this._fn = newFn
+      // refresh our handlers
+     this._handlers = val.returnVal
     }
 
-    // get new handles
-    this._handlers = this._fn()
-    
+    // whether there's a new fn or no,
     // subscribe new inputs to handles
     plugEach(this._inputs, this._handlers)
 
     // note how we DON'T super._sendDownstream
     // Endpoints never have downstreams.
+    return this
   }
 
   _takeFromUpstream (upstreamOutputs) {
@@ -71,6 +77,12 @@ class Endpoint extends Component {
     //
     super._takeFromUpstream(upstreamOutputs)
   }
+
+  // we overwrite the attach() method to error
+  // nothing can be downstream of an Endpoint
+  attach () {
+    this._errorCb('You can\'t attach components to an Endpoint. Nothing comes downstream of and Endpoint.')
+  } 
 
 }
 
