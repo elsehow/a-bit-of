@@ -1,21 +1,15 @@
 {
   "name": "a-bit-of",
-  "version": "1.0.0",
-  "description": "live-code with event emitters - processing / arduino style!",
-  "main": "indes.js",
+  "version": "2.0.0",
+  "description": "live-code with streaming data",
+  "main": "index.js",
   "scripts": {
-    "test": "bash test/test.sh | tap-spec"
+    "test": "node test/test.js | tap-spec"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/elsehow/a-bit-of.git"
   },
-  "keywords": [
-    "live code",
-    "livecode",
-    "event emitters",
-    "hot reload"
-  ],
   "author": "elsehow",
   "license": "BSD-2-Clause",
   "bugs": {
@@ -23,11 +17,9 @@
   },
   "homepage": "https://github.com/elsehow/a-bit-of#readme",
   "dependencies": {
-    "hotmop": "^0.1.0"
+    "tape": "^4.2.2"
   },
   "devDependencies": {
-    "kefir": "^3.1.0",
-    "tap-spec": "^4.1.1",
-    "tape": "^4.2.2"
+    "tap-spec": "^4.1.1"
   }
 }
