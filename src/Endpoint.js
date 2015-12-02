@@ -65,7 +65,6 @@ class Endpoint extends Component {
     // but Endpoints never have downstreams.
   }
 
-  // methods inherited from Component:
   propogate (upstream) {
     unplugEach(this.inputs, this.handles)
     super.propogate(upstream)
