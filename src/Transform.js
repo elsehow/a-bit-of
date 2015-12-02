@@ -8,10 +8,6 @@
 var Component = require('./Component')
 var validators = require('./validators')
 
-// TODO
-// validate: input fn a stream, returns an array of streams
-// inheritence works?
-
 class Transform extends Component {
 
   constructor (fn) {
@@ -21,21 +17,19 @@ class Transform extends Component {
 
   update (newFn) {
     if (newFn)
-      this.fn = newFn
+      this._fn = newFn
     // if we have any inputs
-    if (this.inputs) 
-      // re run fn on our inputs, set our outputs
-      this.outputs = this.fn.apply(null, this.inputs)
-    // propogate these changes downstream
-    super._flowDownstream()
+    if (this._inputs) {
+      // tell our upstreams to refresh their listeners, so we can re-attach.
+      this._bubbleUp('refreshListeners', (_) => {
+        // re run fn on our inputs, set our outputs
+        this._outputs = this._fn.apply(null, this._inputs)
+        // propogate these changes downstream
+        super._sendChangesDownstream()
+      })
+    }
   }
 
-  // methods inherited from Component:
-
-  // attach()
-
-  // propogate()
- 
 }
 
 module.exports = Transform

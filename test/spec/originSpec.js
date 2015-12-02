@@ -1,9 +1,8 @@
 'use strict'
 
 var test = require('tape')
-  , EventEmitter = require('events').EventEmitter
-  , errorMessages = require('../../src/validators').errorMessages
   , Origin = require('../..').Origin
+  , Component = require('../../src/Component')
   , utils = require('../util/utils.js')
   , timeouts = []
 
@@ -11,51 +10,44 @@ var test = require('tape')
 
 function OriginSpecs () {
 
-  test('Origin should be created with proper defaults', function (t) {
+  test('ORIGIN SPEC - initiates properly ', function (t) {
+    // with no function given
+    var o = new Origin()
+    t.equal(typeof(o._removeListeners), 'function', 'removeListeners is a fn')
+    t.equal(o._outputs, null, '_outputs is null')
+    // console.log('now trying an origin with a proper input function')
     var o = new Origin(utils.makeTwoOriginFn(timeouts))
-    t.equal(typeof(o.update), 'function', 'update is a fn')
-    t.equal(o.downstream, null, 'downstream == null')
-    t.equal(typeof(o.removeListeners), 'function', 'removeListeners is a fn')
-    t.ok(o.outputs.length, 'outputs is a list')
-    t.ok(o.outputs[0]._alive, 'outputs is a list of kefir streams')
+    t.equal(typeof(o._removeListeners), 'function', 'removeListeners is a fn')
+    t.ok(o._outputs.length, '_outputs is a list')
+    t.ok(o._outputs[0]._alive, '_outputs is a list of kefir streams')
     t.end()
   })
 
-  test('should be able to update with a new function (no downstreams attached)', function (t) {
-    t.plan(1)
+  test('origin.update(newFn)', function (t) {
     // make an origin with our old function
-    var o = new Origin(utils.makeTwoOriginFn(timeouts))
-    var oF2 = utils.makeTwoOriginFn(timeouts)
-    o.update(oF2)
-    // if nothing crashed, i guess it worked
-    t.ok(true, 'update function takes')
-  })
-
-
-  test('should be able to attach a downstream', function (t) {
-    t.plan(1)
     var o = utils.makeOneOrigin(timeouts)
-    var myDownstream = utils.makeSpyEndpoint().endpoint
-    o.attach(myDownstream)
-    t.equal(o.downstream, myDownstream, 'downstream should have attached.')
+    var outRef = o._outputs
+    // we attach a component to it
+    var c = new Component()
+    o.attach(c)
+    t.equal(o._outputs, c._inputs, 'verify that streams propogate from origin to attache component')
+    // verify the stream gives us 1s
+    utils.verifyStream(t, c._inputs[0], 1, 'attached component can get values from origin streams', () => {
+      // now we update origin's function
+      var oF2 = utils.makeTwoOriginFn(timeouts)
+      o.update(oF2)
+      var newOutRef = o._outputs
+      t.notEqual(newOutRef, outRef, 'origin updated its _output')
+      t.equal(o._outputs, c._inputs, 'changes propogated to component')
+      utils.verifyStream(t, c._inputs[0], 2, 'attached component can get values from origin streams after function update', () => 
+        t.end())
+    })
   })
 
+  // TODO tests for validation ----------------------------------------
 
-  test('downstreams shouldn\'t be able to attach to an Origin', function (t) {
-    t.plan(1)
-    var expectedError = errorMessages.badDownstream
-    // bad upstream
-    function upstream () { }
-    // make a new origin
-    var o1 = utils.makeOneOrigin(timeouts)
-    var o2 = utils.makeOneOrigin(timeouts)
-    o1.attach(o2)
-    t.equal(o1.error, expectedError, 'should have an error after trying to attach an origin as a downstream.')
-  })
+  test.skip('downstreams shouldn\'t be able to attach to an Origin')
 
-
-
-  // tests for validation ----------------------------------------
   test.skip('Origin should validate its input functions', function (t) {
     t.plan(4)
     // the error we expect to see for all these tests
@@ -102,12 +94,7 @@ function OriginSpecs () {
     t.equal(o.error, expectedError, 'should have an error after updating to a bad fn.')
   })
 
-  // cleanup tests -----------------------------------------------
-  test('cleanup', function (t) {
-    t.plan(1)
-    timeouts.forEach((t) => clearTimeout(t))
-    t.ok(true, 'cleaned up')
-  })
+  utils.cleanup(test, timeouts)
 
 }
 

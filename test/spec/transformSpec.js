@@ -1,120 +1,56 @@
 'use strict'
 
 var test = require('tape')
-  , EventEmitter = require('events').EventEmitter
-  , errorMessages = require('../../src/validators').errorMessages
   , utils = require('../util/utils.js')
   , Transform = require('../..').Transform
+  , Component = require('../../src/Component')
+  , timeouts = []
 
 // refs for our timeouts
-var timeouts = []
-
-// TODO
-// ALL components should get some prototypical methods..
-// - attach to a downstream
-// - attach to an upstream
-// - validate downstream
-// - validate upstream
-
-// tests --------------------------------------------------------
 
 function TransformSpecs () {
 
-  test('Transform should initialize with proper defaults', function (t) {
-    var o = new Transform(utils.timesTwoTransform)
-    t.equal(typeof(o.update), 'function', 'update is a fn')
-    t.equal(o.downstream, null, 'downstream == null')
-    t.equal(o.upstream, null, 'upstream == null')
+  test('TRANSFORM SPEC - initiates properly', function (t) {
+    var tr = new Transform(utils.timesTwoTransformFn)
+    t.equals(tr._fn, utils.timesTwoTransformFn, '_fn is what i expect')
+    t.equals(tr._outputs, null, '_outputs is null - there are no inputs')
     t.end()
   })
 
-  test('should be able to attach a downstream and an upstream', function (t) {
-    var r = utils.makeSpyEndpoint(timeouts)
-    // we'll use this event emitter to spy on output from Origin
-    var spy = r.spy
-    // now we should see a 2 come out of our spy in the downstream
-    spy.on('value', (v) => {
-      t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
-      spy.removeAllListeners('value')
-      t.end()
-    })
-    // attach the 1-emitting origin to our transform
-    var oneOrigin = utils.makeOneOrigin(timeouts)
-    // make a new transform
-    var o = new Transform(utils.timesTwoTransform)
-    // attach origin to transform, transform to downstream
-    oneOrigin.attach(o).attach(r.endpoint)
-    t.notOk(o.error, 'should be no error after attaching to downstream')
-    t.equal(o.downstream, r.endpoint, 'downstream should have attached.')
+  test('_takeFromUpstream will generate new streams from a given stream array, and pass them downstream', (t) => {
+    var tr = new Transform(utils.timesTwoTransformFn)
+    var ds = new Component()
+    // attach a transform to a downstream
+    tr.attach(ds)
+    // feed transform an array of kefir streams
+    tr._takeFromUpstream([ utils.oneStream(timeouts) ])
+    // verify that downstream's input[0] is a stream of ones.
+    utils.verifyStream(t, ds._inputs[0], 1*2, 'downstream inputs[0] is from its upstream.', () =>
+      t.end())
   })
 
-  test('should be able to swap upstream functions', function (t) {
-    var r = utils.makeSpyEndpoint(timeouts)
-    // we'll use this event emitter to spy on output from Origin
-    var spy = r.spy
-    // now we should see a 2 come out of our spy in the downstream
-    spy.on('value', (v) => {
-      t.equal(v, 2, 'we get values from attaching a downstream to an origin.')
-      spy.removeAllListeners('value')
-      // once we do, 
-      // let's swap origin for a function that emits a stream of 2's
-      oneOrigin.update(utils.makeTwoOriginFn(timeouts))
-      // now we should see a 4 come out of our spy in the downstream
-      // now we should see a 2 come out of our spy in the downstream
-      spy.on('value', (v) => {
-        t.equal(v, 4, 'we get the updated upstream\'s values downstream.')
-        spy.removeAllListeners('value')
-        t.end()
-      })
+  test('update will generate new streams from an existing stream array, and pass them downstream', (t) => {
+    var tr = new Transform(utils.timesTwoTransformFn)
+    var ds = new Component()
+    // attach a transform to a downstream
+    tr.attach(ds)
+    // feed transform an array of kefir streams
+    tr._takeFromUpstream([ utils.oneStream(timeouts) ])
+    // now, downstream's inputs[0] is a stream of ones... 
+    utils.verifyStream(t, ds._inputs[0], 1*2, 'downstream inputs[0] is from its upstream.', () => {
+      // but, if we `tr.update`, downstream inputs should change.
+      tr.update(utils.timesThreeTransformFn)
+      utils.verifyStream(t, ds._inputs[0], 1*3, 'downstream inputs[0] is from its new upstream', () =>
+        t.end())
     })
-    // attach the 1-emitting origin to our transform
-    var oneOrigin = utils.makeOneOrigin(timeouts)
-    // make a new transform
-    var o = new Transform(utils.timesTwoTransform)
-    // attach origin to transform, transform to downstream
-    oneOrigin.attach(o).attach(r.endpoint)
-    t.notOk(o.error, 'should be no error after attaching to downstream')
-    t.equal(o.downstream, r.endpoint, 'downstream should have attached.')
-  })
-
-  test('should be able to swap transform\'s functions', function (t) {
-    var r = utils.makeSpyEndpoint(timeouts)
-    // we'll use this event emitter to spy on output from Origin
-    var spy = r.spy
-    // make a new transform
-    var o = new Transform(utils.timesTwoTransform)
-    // now we should see a 2 come out of our spy in the downstream
-    spy.on('value', (v) => {
-      spy.removeAllListeners('value')
-      t.equal(v, 2, 'we get values from origin->transform->endpoint.')
-      // once we do, 
-      // let's swap our transform function for something else
-      o.update(utils.timesThreeTransform)
-      // now we attach a new listener, expecting 3's from our updated function
-      spy.on('value', (v) => {
-        t.equal(v, 3, 'see new values at endpoint after updating transform.')
-        t.end()
-        spy.removeAllListeners('value')
-      })
-    })
-    // attach the 1-emitting origin to our transform
-    var oneOrigin = utils.makeOneOrigin(timeouts)
-    // attach origin to transform, transform to downstream
-    oneOrigin.attach(o).attach(r.endpoint)
-    t.notOk(o.error, 'no error attaching downstream')
-    t.equal(o.downstream, r.endpoint, 'downstream should have attached.')
-  })
-
-
+  })  
 
   // tests for validation ----------------------------------------
 
+  test.skip('validates user input fn')
+
   // cleanup tests -----------------------------------------------
-  test('cleanup', function (t) {
-    t.plan(1)
-    timeouts.forEach((t) => clearTimeout(t))
-    t.ok(true, 'cleaned up')
-  })
+  utils.cleanup(test, timeouts)
 
 }
 

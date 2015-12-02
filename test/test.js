@@ -1,8 +1,17 @@
 
 // origin specs
-require('./spec/OriginSpec')()
-require('./spec/TransformSpec')()
-require('./spec/EndpointSpec')()
+// require('./spec/ComponentSpec')()
+// require('./spec/OriginSpec')()
+// require('./spec/TransformSpec')()
+// require('./spec/EndpointSpec')()
+
+// integration specs
+require('./integration/IntegrationSpec')()
+
+
+
+
+
 
 // todo
 // component spec

@@ -42,32 +42,34 @@ class Endpoint extends Component {
 
   constructor (fn) {
     super()
-    // note that endpoints have no attach method 
-    // (nothing can come after an endpoint)
-    this.attach = null
     // component has a special field, `handles`
-    this.handles = null
+    // cf. "outputs" - an endpoint has no outputs.
+    this._handlers = null
     this.update(fn)
   }
 
   update (newFn) {
+
     // update fn if necessary
     if (newFn) {
-      this.fn = newFn
-      // get new handles
-      this.handles = this.fn()
+      this._fn = newFn
     }
-    // subscribe new inputs to handles
-    plugEach(this.inputs, this.handles)
 
-    // we don't need to call super.update()
-    // that method propogates to downstreams,
-    // but Endpoints never have downstreams.
+    // get new handles
+    this._handlers = this._fn()
+    
+    // subscribe new inputs to handles
+    plugEach(this._inputs, this._handlers)
+
+    // note how we DON'T super._sendDownstream
+    // Endpoints never have downstreams.
   }
 
-  propogate (upstream) {
-    unplugEach(this.inputs, this.handles)
-    super.propogate(upstream)
+  _takeFromUpstream (upstreamOutputs) {
+    // unplug our current inputs from our old handles
+    unplugEach(this._inputs, this._handlers)
+    //
+    super._takeFromUpstream(upstreamOutputs)
   }
 
 }

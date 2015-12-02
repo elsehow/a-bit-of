@@ -1,9 +1,9 @@
-refactor tests
-- test.utils
 
 integration tests
 - test simple 3-layer
-    * swap each function
+    * swap origin
+    * swap trasnform
+    * swap output
 - test multiple trasnforms between the layers
     * swap each function
 
