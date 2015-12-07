@@ -17,7 +17,7 @@ var EventEmitter = require('events').EventEmitter
 //
 // where `returnVal` is fn()
 //
-function validate (fn, criteria, args) {
+function validate (errorMsg, fn, criteria, args) {
   var err;
   // check that fn is a function
   try {
@@ -42,7 +42,7 @@ function validate (fn, criteria, args) {
         return true
       else {
         if (!err) {
-          err = cur[1]
+          err = errorMsg
         }
         return false
       }
@@ -58,46 +58,67 @@ function validate (fn, criteria, args) {
 function originFn  (fn) {
   var errorMsg = 'Origin\'s function should return a list of \n [ [ EventEmitter, \'event\'] ... ]. Note how that\'s a list of lists.' 
   var originCriteria = function (rv) {
+    // origin fn return value
     return [
-      [ rv, errorMsg ],
-      [ rv.length, errorMsg ],
-      [ rv.length > 0, errorMsg ],
-      [ rv[0].length > 1, errorMsg ],
-      [ EventEmitter.prototype.isPrototypeOf(rv[0][0]), errorMsg ],
-      [ typeof(rv[0][1]) === 'string', errorMsg ],
+      // exists
+      [ rv ],
+      // is a list
+      [ rv.length ],
+      [ rv.length > 0 ],
+      // is a list of lists
+      [ rv[0].length ],
+      // inner list first value is event emitter
+      [ EventEmitter.prototype.isPrototypeOf(rv[0][0]) ],
+      // inner list second value is string
+      [ typeof(rv[0][1]) === 'string' ],
     ]
   }
-  return validate(fn, originCriteria)
+  return validate(errorMsg, fn, originCriteria)
 }
 
 function transformFn (fn, args) {
+  var errorMsg  = 'Transform\'s function should return a list of \n [ stream1, stream2, ... ].'
   var trasnformCriteria = function (rv) {
-    var errorMsg = 'Transform\'s function should return a list of \n [ stream1, stream2, ... ].'
     return [
-      [ rv, errorMsg ],
+      [ rv ],
       // rv should be a list
-      [ rv.length, errorMsg ],
-      [ rv.length > 0, errorMsg ],
+      [ rv.length ],
+      [ rv.length > 0 ],
       // elements of rv should be a stream
-      [ rv[0]._dispatcher , errorMsg ],
+      [ rv[0]._dispatcher  ],
     ]
   }
-  return validate(fn, trasnformCriteria, args)
+  return validate(errorMsg, fn, trasnformCriteria, args)
 }
 
-function endpointFn (fn, errorCb) {
+function endpointFn (fn) {
+  var errorMsg  = 'Endpoint\'s function should return a list of functions.'
   var trasnformCriteria = function (rv) {
-    var errorMsg = 'Endpoint\'s function should return a list of functions.'
+    // if we're using the taredown api,
+    if (rv.taredown || rv.handlers) {
+      return [
+        [ rv ], 
+        // handlers should be a list
+        [ rv.handlers ],
+        [ rv.handlers.length ],
+        [ rv.handlers.length > 0],
+        // taredown is optional, but it should be a function, if it exists
+        [ typeof(rv.taredown) === 'function' || !rv.taredown, ],
+        // items in handlers should be functions
+        [ typeof(rv.handlers[0]) === 'function' ],
+      ]
+    }
+    // otherwise, we're using the handlers-only api
     return [
-      [ rv, errorMsg ],
-      // rv should be a list
-      [ rv.length, errorMsg ],
-      [ rv.length > 0, errorMsg ],
+      [ rv ],
+      // rv should be a list 
+      [ rv.length ],
+      [ rv.length > 0 ],
       // items in that list should be functions
-      [ typeof(rv[0]) === 'function' , errorMsg ],
+      [ typeof(rv[0]) === 'function' ],
     ]
   }
-  return validate(fn, trasnformCriteria)
+  return validate(errorMsg, fn, trasnformCriteria)
 }
 
 module.exports = {

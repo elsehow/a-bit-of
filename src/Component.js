@@ -30,7 +30,7 @@ class Component {
   // propogate changes from an upstream node
   _takeFromUpstream (upstreamOutputs) {
     this._inputs = upstreamOutputs
-    this.update(this._fn)
+    this.update()
   }
 
   // components will overwrite this function

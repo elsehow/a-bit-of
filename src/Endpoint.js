@@ -59,7 +59,12 @@ class Endpoint extends Component {
       }
       this._fn = newFn
       // refresh our handlers
-     this._handlers = val.returnVal
+      // do the taredown function, if there is one
+      if (val.returnVal.taredown) {
+        this._handlers = val.returnVal.handlers
+        val.returnVal.taredown()
+      } else 
+        this._handlers = val.returnVal
     }
 
     // whether there's a new fn or no,

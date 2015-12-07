@@ -37,9 +37,30 @@ function EndpointSpecs () {
     e.attach(c)
   })
 
-  test.skip('should trigger its function\'s taredown() methods, if they exist')
-  // should  trigger taredown if a new fn is passed in
-  // should NOT trigger taredown if a new fn is **not** passed in (e.g. on propogate downstream)
+  test('should trigger its function\'s taredown() methods, if they exist', (t) => {
+    t.plan(2)
+    // an endpoint function with a taredown
+    function withTaredown () {
+      return {
+        handlers: [
+          () => null
+        ],
+        taredown: () => {
+          t.ok(true, 'tearing down the function')
+        }
+      }
+    } 
+    // should  trigger taredown if a new fn is passed in
+    var e = new Endpoint().update(withTaredown)
+    // should NOT trigger taredown if a new fn is **not** passed in (e.g. on propogate downstream)
+    e._takeFromUpstream([ utils.oneStream() ])
+    var c = new Component()
+    c._takeFromUpstream([ utils.oneStream() ])
+    c.attach(e)
+    c._takeFromUpstream([ utils.oneStream() ])
+    // again, should  trigger taredown if a new fn is passed in
+    var e = new Endpoint().update(withTaredown)
+  })
 
   // tests for validation ----------------------------------------
 

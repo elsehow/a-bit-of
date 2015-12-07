@@ -1,10 +1,7 @@
 
 next steps
 ------------
-- proper validation
-- redo 
-.
-- taredowns
+. . .
 - codify api simple readme
 - publish!
 - integrate erroring into electron-playing
@@ -12,6 +9,7 @@ next steps
 
 weird thing
 ------------
+- is `update` really the right word?
 i call new Origin(fn) and origin.update(fn)
 to do basically the same thing......
 in fact i sub-call update() everwhere
@@ -23,7 +21,7 @@ future play
 ------------
 - deeper levels of heirarchy
 - more complex graphs
-- should ALL the return values be streams? (functions, etc..?)
+- should ALL the return values be streams? (functions, etc..?) (api doesnt check that they are - we can exploit this!)
 
 
 
