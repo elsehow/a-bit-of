@@ -1,6 +1,6 @@
 {
   "name": "a-bit-of",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "live-code with streaming data",
   "main": "index.js",
   "scripts": {
@@ -17,9 +17,10 @@
   },
   "homepage": "https://github.com/elsehow/a-bit-of#readme",
   "dependencies": {
-    "tape": "^4.2.2"
+    "kefir": "^3.1.0"
   },
   "devDependencies": {
-    "tap-spec": "^4.1.1"
+    "tap-spec": "^4.1.1",
+    "tape": "^4.2.2"
   }
 }

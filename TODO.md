@@ -1,8 +1,7 @@
 
 next steps
 ------------
-. . . .
-- publish!
+. . . . .
 - integrate erroring into electron-playing
 - show multi-stream hotswapping is ok
 
