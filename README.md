@@ -1,8 +1,10 @@
 # a bit of
 
-a functional-reactive approach to flow-based programming, using functional-reactive streams and event emitters
+a functional-reactive approach to flow-based programming
 
-make chains of functions, a-la max/msp, puredata, vvvv, etc, to program with streaming data. update processing or output functions without disturbing your source streams.
+make chains of functions, a-la max/msp, puredata, vvvv, etc, to program with streaming sources of data
+
+update processing/output functions without disturbing your source streams.
 
 ## components
 
