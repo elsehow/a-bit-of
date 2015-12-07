@@ -1,23 +1,32 @@
 # a bit of
 
-work in progress.
+a functional-reactive approach to flow-based programming, using functional-reactive streams and event emitters
 
-for something stable, but outdated, refer to [the old npm package](https://www.npmjs.com/package/a-bit-of)
+make chains of functions, a-la max/msp, puredata, vvvv, etc, to program with streaming data. update processing or output functions without disturbing your source streams.
 
-## user inputs
+## components
 
-the user inputs 3 functions
+components are attached together to process streams.
 
-these functions, in order, are
+components are made out of a function. general pattern:
+
+```javascript
+var c = new Component(e => 
+  console.log('err', err)).update(myFunction)
+```
+
+the component's consturctor takes an error callback. you can set the component's function by calling its `update` method.
+
+there are three types of components:
 
 ### origin
 
-takes nothing
+origin's functions take nothing
 
-returns [ emitter, 'event' ]
+they reutrn a list of [ [ emitter, 'event' ] ..]
 
 ```javascript
-function origin () {
+function originFn () {
   // port is an EventEmitter
   port = serialport('/dev/tty.MindWave')
   // we want to make a stream of its 'data' events
@@ -25,55 +34,87 @@ function origin () {
     [port, 'data']
   ]
 }
+
+var o = new abitof.Origin(e => 
+  console.log('err', e)).update(originFn)
 ```
 
 ### transform
 
-takes a stream, returns a stream
-
-TODO: multiple streams ?
+transform function's take streams, and return streams
 
 ```javascript
-function transform (mindwaveStream) {
+function transformFn (deviceStream) {
   // return a stream of fft'd buffers 
-  return mindwaveStream.bufferWithCount(512).map(fft)
+  return deviceStream.bufferWithCount(512).map(fft)
 }
+
+var t = new abitof.Transform(e => 
+  console.log('err', e).update(trasnformFn)
 ```
+
 
 ### endpoints 
 
-takes a stream 
+endpoint functions take streams, and return a list of functions.
 
-TODO: handle values from multiple streams ?
-
-returns {
-  handle: function (x) { // handle each value of input stream },
-  taredown: function () { // do stuff to the stream }
-}
+the functions handles values from each input stream
 
 ```javascript
-function endpoint (fftStream) {
+function endpointFn (fftStream) {
+  //  endpoints setup logic
+  midiServer.start()
+  // return handle(), and, optionally, a taredown () function
+  return [
+    function (x) { 
+      midiServer.send(midiFromAlphaWaves(x))
+    }
+  ]
+}
+
+var e = new Endpoint (e => 
+  console.log('err', e).update(endpointFn)
+```
+
+optionally, endpoint functions can return a `taredown()` method, which gets triggered when a new update() function is passed through
+
+use it for, e.g., removing divs so that you can re-add them.
+
+```javascript
+function endpointFn (fftStream) {
   //  endpoints setup logic
   midiServer.start()
   // return handle(), and, optionally, a taredown () function
   return {
-    handle: function (x) { 
-      midiServer.send(midiFromAlphaWaves(x))
-    },
-    taredown: function () {
+    handlers: [
+      function (x) { 
+        midiServer.send(midiFromAlphaWaves(x))
+      }
+    ],
+    // taredown
+    taredown: () => {
       midiServer.stop()
     }
-  } 
 }
 ```
 
 
 ## api
 
-### swapOrigin(originFunction)
+### origin
 
-### swapTransform(transformFunction)
+update(originFn)
 
-### swapEndpoints(endpointsFunction)
+attach(someDownstreamComponent)
 
+### transform
 
+update(transformFn)
+
+attach(someDownstreamComponent)
+
+## endpoint
+
+update(transformFn)
+
+NOTE: you can't attach anything to endpoints. nothing can be downstream from an endpoint.
