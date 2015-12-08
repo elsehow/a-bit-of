@@ -8,8 +8,12 @@
 var Component   = require('./Component')
   , validate    = require('./validators.js').endpointFn
 
-// TODO
-// validate: fn returns an array of functions
+
+function doIf (fn) {
+  if (fn)
+    fn()
+  return
+}
 
 // applies fn, a method of each item in listOne, to each item in listTwo
 // this works even if the lists aren't equal length
@@ -45,6 +49,7 @@ class Endpoint extends Component {
     // component has a special field, `handles`
     // cf. "outputs" - an endpoint has no outputs.
     this._handlers = null
+    this._taredown = () => null
     delete this.outputs
   }
 
@@ -57,17 +62,21 @@ class Endpoint extends Component {
         this._errorCb(val.error)
         return
       }
-      // first, unplug the old functions
+      // unplug the inputs from our old handlers
       unplugEach(this._inputs, this._handlers)
+      // do our old function's taredown
+      doIf(this._taredown)
       // set the new function
       this._fn = newFn
-      // and refresh our handlers
-      // doing the taredown function, if there is one
+      // make our new handlers
       if (val.returnVal.taredown) {
         this._handlers = val.returnVal.handlers
-        val.returnVal.taredown()
-      } else 
+        // set the new taredown fn, if there is one
+        this._taredown = val.returnVal.taredown
+      } else {
         this._handlers = val.returnVal
+      }
+
     }
 
     // whether there's a new fn or no,

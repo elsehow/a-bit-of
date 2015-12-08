@@ -37,8 +37,8 @@ function EndpointSpecs () {
     e.attach(c)
   })
 
-  test('should trigger its function\'s taredown() methods, if they exist', (t) => {
-    t.plan(2)
+  test('should trigger its function\'s taredown() methods, but only when that function is being changed to something else..', (t) => {
+    t.plan(1)
     // an endpoint function with a taredown
     function withTaredown () {
       return {
@@ -50,7 +50,7 @@ function EndpointSpecs () {
         }
       }
     } 
-    // should  trigger taredown if a new fn is passed in
+    // should NOT trigger taredown 
     var e = new Endpoint().update(withTaredown)
     // should NOT trigger taredown if a new fn is **not** passed in (e.g. on propogate downstream)
     e._takeFromUpstream([ utils.oneStream() ])
@@ -59,7 +59,42 @@ function EndpointSpecs () {
     c.attach(e)
     c._takeFromUpstream([ utils.oneStream() ])
     // again, should  trigger taredown if a new fn is passed in
-    var e = new Endpoint().update(withTaredown)
+    var e = e.update(withTaredown)
+  })
+
+  test('endpoint functions should setup and taredown', (t) => {
+    t.plan(3)
+    var e = new Endpoint()
+    // one test endpoint fn
+    e.update(() => {
+      // this should happen on setup
+      t.ok(true, 'setting up')
+      return {
+        handlers: [ 
+          // TODO - swap to a different endpoint fn to see how taredown works
+          (x) => t.ok(x, 'this should happen on an event')
+        ],
+        // if we change the fn once,
+        // we expect this to be called once
+        taredown: () => {
+          t.ok(true, 'taring down')
+        }
+      }
+    })
+    // try another endpoint fn
+    e.update(() => {
+      t.ok(true, 'setting up fn 2')
+      return {
+        handlers: [
+          () => null
+        ],
+        // we don't swap out this function
+        // so, we expect never to see this executed
+        taredown: () => {
+          t.notOk(true, 'fn 2 taredown() shouldn\'t be called')
+        }
+      }
+    })
   })
 
   // tests for validation ----------------------------------------
