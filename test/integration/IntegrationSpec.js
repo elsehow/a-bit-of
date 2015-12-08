@@ -25,6 +25,7 @@ function IntegrationSpecs () {
   test('%%%% INTEGRATION SPEC %%%%', (t) => t.end())
 
   test('Basic hierarchy', function (t) {
+    t.plan(4)
     // make a hierarchy:
     // origin -> transform -> endpoint
     var or = utils.makeOneOrigin()
@@ -50,14 +51,16 @@ function IntegrationSpecs () {
       var endpntFn = utils.makeEndpointFn(spy2)
       r.endpoint.update(endpntFn)
       testEmitter(t, spy2, 2*3, 'updating endpoint, right values come through', cb)
+      r.spy.on('value', (v) => {
+        t.notOk(v, 'we should NOT see this anymore, as we have swapped it out.')
+      })
     }
     
     // do the tests
     hierarchyTest(() => 
       swapOriginFn(() =>
         swapTransformFn(() =>
-          swapEndpointFn(() =>
-              t.end()))))
+          swapEndpointFn(() => null))))
   })
 
 

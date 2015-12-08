@@ -50,6 +50,19 @@ function ComponentSpecs () {
     t.end()
   })
 
+  test('Components should validate downstreams on attach()', (t) => {
+    t.plan(1)
+    function handleError (err) {
+      console.log('an error i was expecting to see', err)
+      t.ok(err, 'errors on attach')
+    }
+    class FakeDownstream {
+    }
+    var d = new FakeDownstream()
+    var c = new Component(handleError)
+    c.attach(d)
+  })
+
 }
 
 module.exports = ComponentSpecs

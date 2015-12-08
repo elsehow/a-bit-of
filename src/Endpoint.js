@@ -57,9 +57,12 @@ class Endpoint extends Component {
         this._errorCb(val.error)
         return
       }
+      // first, unplug the old functions
+      unplugEach(this._inputs, this._handlers)
+      // set the new function
       this._fn = newFn
-      // refresh our handlers
-      // do the taredown function, if there is one
+      // and refresh our handlers
+      // doing the taredown function, if there is one
       if (val.returnVal.taredown) {
         this._handlers = val.returnVal.handlers
         val.returnVal.taredown()
