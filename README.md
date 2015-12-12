@@ -31,9 +31,11 @@ they reutrn a list of [ [ emitter, 'event' ] ..]
 function originFn () {
   // port is an EventEmitter
   port = serialport('/dev/tty.MindWave')
+  socket = websocket('ws://some-server')
   // we want to make a stream of its 'data' events
   return [
-    [port, 'data']
+    [port, 'data'],
+    [socket, 'event'],
   ]
 }
 
@@ -43,12 +45,15 @@ var o = new abitof.Origin(e =>
 
 ### transform
 
-transform function's take streams, and return streams
+transform function's take an arbitrary number of streams, and return a list of streams
 
 ```javascript
-function transformFn (deviceStream) {
+function transformFn (deviceStream, socketStream) {
   // return a stream of fft'd buffers 
-  return deviceStream.bufferWithCount(512).map(fft)
+  return [
+    deviceStream.bufferWithCount(512).map(fft),
+    socketStream.filter(someFilterFn),
+  ]
 }
 
 var t = new abitof.Transform(e => 
@@ -58,9 +63,9 @@ var t = new abitof.Transform(e =>
 
 ### endpoints 
 
-endpoint functions take streams, and return a list of functions.
+endpoint functions return a list of functions.
 
-the functions handles values from each input stream
+the functions handle values from inputs stream
 
 ```javascript
 function endpointFn (fftStream) {
@@ -69,7 +74,8 @@ function endpointFn (fftStream) {
   // return handle(), and, optionally, a taredown () function
   return [
     function (x) { 
-      midiServer.send(midiFromAlphaWaves(x))
+      midiServer.send(midiFromAlphaWaves(x));
+      midiServer.send(midiFromRoomEvents(x));
     }
   ]
 }
@@ -99,7 +105,19 @@ function endpointFn (fftStream) {
     }
 }
 ```
+## attaching components together
 
+```javascript
+var abitof = require('a-bit-of')
+
+// make components
+var o = new abitof.Origin(someOriginFn)
+var t = new abitof.Transform(someTransformFn)
+var e = new abitof.Endpoint(someEndpointFn)
+
+// attach them together
+o.attach(t).attach(e)
+```
 
 ## api
 
